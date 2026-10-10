@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
-  <link href="./assets/arcadia.css?v=2.0.0" rel="stylesheet">
+  <link href="./assets/arcadia.css?v=2.2.0" rel="stylesheet">
   <!-- three.js draws the 3D scene at the top of the page. -->
   <script type="importmap">
     {
@@ -25,7 +25,7 @@
 </head>
 
 <body>
-  <header class="hero">
+  <header id="top" class="hero slide">
     <canvas id="scene" aria-hidden="true"></canvas>
     <p class="fallback-name" aria-hidden="true">Arcadia</p>
     <nav class="nav" aria-label="Main">
@@ -47,10 +47,13 @@
         <a class="btn" href="#boards">Make a family board</a>
       </div>
     </div>
+    <a class="scroll-cue" href="#games">Games
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+    </a>
   </header>
 
   <main>
-    <section id="games" aria-labelledby="games-title">
+    <section id="games" class="slide" aria-labelledby="games-title">
       <p class="eyebrow">The cabinets</p>
       <h2 id="games-title">Pick a game</h2>
       <p class="section-intro">Every game plays on phones, tablets and computers, and every one shares your family board.</p>
@@ -75,9 +78,10 @@
           <span class="cta">Coming soon</span>
         </div>
       </div>
+      <p class="swipe-hint">Swipe for more cabinets &rarr;</p>
     </section>
 
-    <section id="boards" aria-labelledby="boards-title">
+    <section id="boards" class="slide" aria-labelledby="boards-title">
       <p class="eyebrow">Family boards</p>
       <h2 id="boards-title">Your own leaderboard</h2>
       <p class="section-intro">Make a board, send the link, and everyone's best scores land on the same top 10, in every game, from any device.</p>
@@ -109,18 +113,24 @@
           <p class="note">Anyone with the link can see the board and add scores to it, so keep it to people you know. This device remembers the board once you've made or opened it.</p>
         </div>
       </div>
+      <footer>
+        <p><a class="brand" href="#top">Arcadia</a></p>
+        <p>The code is on <a href="https://github.com/azadmotala/arcadia">GitHub</a>. Space Cats builds on Dave Kerr's <a href="https://github.com/dwmkerr/spaceinvaders">spaceinvaders</a>, which is MIT licensed.</p>
+      </footer>
     </section>
   </main>
 
-  <footer>
-    <p><a class="brand" href="./">Arcadia</a></p>
-    <p>The code is on <a href="https://github.com/azadmotala/arcadia">GitHub</a>. Space Cats builds on Dave Kerr's <a href="https://github.com/dwmkerr/spaceinvaders">spaceinvaders</a>, which is MIT licensed.</p>
-  </footer>
+  <!-- Where you are in the page, as dots you can also click. -->
+  <ul class="dots" aria-label="Sections">
+    <li><a href="#top" title="Arcadia"><span class="sr-only">Arcadia</span></a></li>
+    <li><a href="#games" title="Games"><span class="sr-only">Games</span></a></li>
+    <li><a href="#boards" title="Family boards"><span class="sr-only">Family boards</span></a></li>
+  </ul>
 
   <!-- Space Cats' own sprites and cats, so the page and the game always match. -->
   <script src="games/space-cats/js/spacecats.js?v=1.0.0"></script>
-  <script src="assets/arcadia.js?v=2.0.0"></script>
-  <script type="module" src="assets/scene.js?v=2.0.0"></script>
+  <script src="assets/arcadia.js?v=2.2.0"></script>
+  <script type="module" src="assets/scene.js?v=2.2.0"></script>
 </body>
 
 </html>

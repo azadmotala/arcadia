@@ -370,6 +370,9 @@ function resize() {
   const narrow = camera.aspect < 1;
   camera.fov = narrow ? 70 : 55;
   camera.userData.base = narrow ? new THREE.Vector3(0, 5, 30) : new THREE.Vector3(0, 4, 18);
+  //  On a tall, narrow screen the words cover the bottom of the scene, so
+  //  look down a little to lift the sign, the fleet and the cat above them.
+  lookAt.y = narrow ? 1.5 : 8;
   camera.position.copy(camera.userData.base);
   camera.lookAt(lookAt);
   camera.updateProjectionMatrix();

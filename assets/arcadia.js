@@ -154,6 +154,28 @@
     }
   }
 
+  //  Lights the dot for whichever slide is across the middle of the screen.
+  function setUpDots() {
+    if (!('IntersectionObserver' in window)) {
+      return;
+    }
+    var dots = document.querySelectorAll('.dots a');
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) {
+          return;
+        }
+        for (var i = 0; i < dots.length; i++) {
+          dots[i].setAttribute('aria-current', dots[i].getAttribute('href') === '#' + entry.target.id ? 'true' : 'false');
+        }
+      });
+    }, { rootMargin: '-45% 0px -54% 0px' });
+    var slides = document.querySelectorAll('.slide');
+    for (var i = 0; i < slides.length; i++) {
+      observer.observe(slides[i]);
+    }
+  }
+
   //  If the 3D scene hasn't started after a few seconds (no WebGL, or
   //  three.js couldn't load), show the name on its own instead.
   window.setTimeout(function() {
@@ -165,4 +187,5 @@
   setUpBoards();
   setUpCats();
   setUpCabinets();
+  setUpDots();
 })();

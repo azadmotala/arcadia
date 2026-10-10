@@ -17,7 +17,20 @@
 
 * { box-sizing: border-box; }
 
-html { background: var(--bg); scroll-behavior: smooth; }
+/* The page moves like a slide show: each scroll snaps to the next full
+   screen, the scene, the games, then the family boards. */
+html {
+  background: var(--bg);
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+}
+
+.slide {
+  min-height: 100vh;
+  min-height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
 
 body {
   margin: 0;
@@ -43,8 +56,8 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 .hero {
   position: relative;
   height: 100vh;
-  min-height: 600px;
-  max-height: 1000px;
+  height: 100svh;
+  min-height: 560px;
   overflow: hidden;
   background: radial-gradient(ellipse at 50% 30%, #2a0f5c 0%, #0b0727 55%, var(--bg) 100%);
 }
@@ -190,7 +203,12 @@ main {
   padding: 0 clamp(var(--gutter), 4vw, 48px);
 }
 
-section { padding: 96px 0 24px; }
+section.slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 0 32px;
+}
 
 .eyebrow {
   margin: 0 0 10px;
@@ -208,7 +226,7 @@ h2 {
   text-shadow: 0 0 10px rgba(155, 107, 255, 0.8), 0 0 34px rgba(155, 107, 255, 0.45);
 }
 
-.section-intro { max-width: 56ch; color: var(--muted); margin: 0 0 40px; }
+.section-intro { max-width: 56ch; color: var(--muted); margin: 0 0 28px; }
 
 /* The games, as a row of cabinets that lean towards the pointer. */
 .cabinets {
@@ -222,7 +240,6 @@ h2 {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 380px;
   padding: 16px;
   text-decoration: none;
   color: var(--ink);
@@ -247,15 +264,16 @@ h2 {
   text-shadow: 0 0 10px var(--pink);
 }
 
+/* The screens are sized to the window, so a slide's cabinets always fit. */
 .cabinet .screen {
   position: relative;
-  aspect-ratio: 450 / 432;
+  height: clamp(140px, 27vh, 260px);
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
-.cabinet .screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cabinet .screen img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
 
 .cabinet .blurb { margin: 14px 0 12px; font-size: 16px; color: #d9d3ff; }
 
@@ -291,7 +309,7 @@ h2 {
 
 .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
 
-.steps li { position: relative; padding: 0 0 26px 66px; counter-increment: step; color: #d9d3ff; }
+.steps li { position: relative; padding: 0 0 22px 66px; counter-increment: step; color: #d9d3ff; }
 
 .steps li::before {
   content: counter(step);
@@ -345,29 +363,134 @@ h2 {
 
 .note { margin: 20px 0 0; font-size: 15px; color: var(--muted); }
 
+/* The footer sits at the bottom of the last slide. */
 footer {
-  max-width: 1120px;
-  margin: 96px auto 0;
-  padding: 28px clamp(var(--gutter), 4vw, 48px) 56px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  margin-top: 36px;
+  padding-top: 18px;
   border-top: 1px solid rgba(155, 107, 255, 0.25);
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
 }
 
-footer .brand { font-size: 22px; }
+footer p { margin: 0; }
 
+footer .brand { font-size: 20px; }
+
+/* Dots down the right-hand side: where you are, and a way to jump. */
+.dots {
+  position: fixed;
+  top: 50%;
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transform: translateY(-50%);
+}
+
+.dots a {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(239, 234, 255, 0.55);
+  border-radius: 50%;
+  transition: background 150ms, border-color 150ms, box-shadow 150ms;
+}
+
+.dots a:hover { border-color: #fff; }
+
+.dots a[aria-current="true"] {
+  background: var(--pink);
+  border-color: var(--pink);
+  box-shadow: 0 0 10px var(--pink);
+}
+
+/* On wide screens, a nudge at the foot of the scene towards the games. */
+.scroll-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  z-index: 2;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink);
+  opacity: 0.85;
+  transform: translateX(-50%);
+  animation: nudge 2.2s ease-in-out infinite;
+}
+
+.scroll-cue svg { width: 22px; height: 22px; }
+
+@media (min-width: 1100px) {
+  .scroll-cue { display: flex; }
+}
+
+@keyframes nudge {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 6px); }
+}
+
+.swipe-hint { display: none; }
+
+/* Phones: the words sit over the foot of the scene, the cabinets swipe
+   sideways, and everything is a little more compact to fit each slide. */
 @media (max-width: 760px) {
-  .hero { height: auto; min-height: 0; max-height: none; display: flex; flex-direction: column; }
-  #scene { position: relative; height: 66vh; min-height: 420px; }
-  .hero-copy { position: relative; left: auto; bottom: auto; max-width: none; padding: 0 var(--gutter) 40px; margin-top: -40px; }
+  .hero::after {
+    background: linear-gradient(0deg, rgba(7, 5, 26, 0.96) 0%, rgba(7, 5, 26, 0.82) 34%, transparent 58%);
+  }
+  .hero-copy {
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+  .lead { font-size: 30px; }
+  .sub { font-size: 16px; margin-bottom: 16px; }
+  .btn { min-height: 46px; padding: 0 18px; font-size: 14px; }
   .nav ul { display: none; }
-  .boards { grid-template-columns: minmax(0, 1fr); }
-  section { padding-top: 72px; }
+  .dots { right: 6px; gap: 10px; }
+  .dots a { width: 10px; height: 10px; }
+  section.slide { padding: 36px 0 24px; }
+  h2 { font-size: 38px; }
+  .section-intro { margin-bottom: 20px; font-size: 16px; }
+  .cabinets {
+    display: flex;
+    gap: 14px;
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 4px var(--gutter) 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    perspective: none;
+  }
+  .cabinets::-webkit-scrollbar { display: none; }
+  .cabinet { flex: 0 0 84%; scroll-snap-align: center; }
+  .cabinet .screen { height: clamp(130px, 25vh, 220px); }
+  .swipe-hint { display: block; margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .boards { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .steps li { padding: 0 0 14px 52px; font-size: 16px; }
+  .steps li::before { width: 38px; height: 38px; font-size: 22px; top: -4px; }
+  .panel { padding: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .btn, .cabinet { transition: none; }
+  .btn, .cabinet, .dots a { transition: none; }
+  .scroll-cue { animation: none; }
 }
 
 /* Family board details: the invite after opening a board's link, the board
