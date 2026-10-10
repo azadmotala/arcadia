@@ -53,7 +53,7 @@ Then open http://localhost:8000. There's nothing to build. GitHub Pages serves t
 ```
 arcadia/
 ├── index.html            The home page: the games and the family board maker
-├── assets/               The home page's styles, script, icon and screenshot
+├── assets/               The home page's styles, scripts, icon and screenshot
 ├── games/
 │   └── space-cats/       Space Cats, with its own README
 ├── docs/                 Banner and screenshots for the READMEs
@@ -62,7 +62,7 @@ arcadia/
 └── .firebaserc           Arcadia's Firebase project
 ```
 
-The home page loads Space Cats' own script for its sprites and cats, so the page and the game always show the same cats. Change a cat in `games/space-cats/js/spacecats.js` and the home page follows.
+The top of the home page is a 3D scene, drawn with [three.js](https://threejs.org) in `assets/scene.js`: a neon grid, wireframe mountains, and Space Cats' fleet and cats built in blocks from the game's own pixel art. The page loads Space Cats' script for those sprites, so change a cat in `games/space-cats/js/spacecats.js` and the home page follows. Where WebGL isn't available, the page shows the name on its own, and with reduced motion switched on, the scene holds still.
 
 ## The leaderboards
 
