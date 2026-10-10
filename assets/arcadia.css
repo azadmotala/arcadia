@@ -377,10 +377,6 @@ h2 {
 
 .panel .btn { justify-self: start; }
 
-.made { margin-top: 22px; }
-
-.made[hidden] { display: none; }
-
 .link-box { padding: 12px 14px; font-weight: 600; color: var(--orange); background: rgba(0, 0, 0, 0.45); border: 1px dashed var(--orange); overflow-wrap: anywhere; }
 
 .note { margin: 20px 0 0; font-size: 15px; color: var(--muted); }
@@ -537,7 +533,7 @@ footer .brand { font-size: 20px; }
 }
 
 /* Family board details: the invite after opening a board's link, the board
-   this device is on, and the link to share once a board is made. */
+   this device is on, with its link to copy or share. */
 .invite {
   display: inline-block;
   margin: 0 0 16px;
@@ -556,9 +552,7 @@ footer .brand { font-size: 20px; }
 }
 
 .current {
-  margin: 0 0 22px;
-  padding: 0 0 22px;
-  border-bottom: 1px solid rgba(49, 214, 255, 0.25);
+  margin: 0 0 16px;
 }
 
 .current p {
@@ -571,13 +565,39 @@ footer .brand { font-size: 20px; }
   overflow-wrap: anywhere;
 }
 
-.made .actions {
+/* Once this device is on a board, the slide makes room for its link: no
+   intro on shorter screens, and no how-to steps on phones. */
+@media (max-height: 820px) {
+  #boards.has-board .section-intro { display: none; }
+}
+
+@media (max-width: 760px) {
+  #boards.has-board .steps { display: none; }
+}
+
+/* On a board, the form for a new one stays folded away behind a button. */
+.panel form[hidden] { display: none; }
+
+.text-btn {
+  padding: 0;
+  font: 600 15px var(--ui);
+  color: var(--cyan);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.text-btn[hidden] { display: none; }
+
+.current .actions {
   margin-top: 14px;
 }
 
 .status {
-  min-height: 1.5em;
-  margin: 10px 0 0;
+  min-height: 1.4em;
+  margin: 6px 0 4px;
   font-weight: 600;
   color: var(--orange);
 }

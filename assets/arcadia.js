@@ -14,10 +14,17 @@
   var BOARD_PATTERN = /^[A-Za-z0-9-]{6,40}$/;
   var GAME_URL = 'games/space-cats/';
 
+  //  Saved as JSON, the way the games save it. Earlier versions of this page
+  //  saved the bare code, so that's read too.
   function loadBoard() {
     try {
       var board = window.localStorage.getItem(BOARD_KEY);
-      return board && BOARD_PATTERN.test(board) ? board : null;
+      try {
+        board = JSON.parse(board);
+      } catch (e) {
+        //  The bare code.
+      }
+      return typeof board === 'string' && BOARD_PATTERN.test(board) ? board : null;
     } catch (e) {
       return null;
     }
@@ -25,7 +32,7 @@
 
   function saveBoard(board) {
     try {
-      window.localStorage.setItem(BOARD_KEY, board);
+      window.localStorage.setItem(BOARD_KEY, JSON.stringify(board));
     } catch (e) {
       //  Storage is blocked; the play links still carry the board.
     }
@@ -45,6 +52,18 @@
     return slug ? slug + '-' + suffix : 'board-' + suffix;
   }
 
+  //  A board's name, from its code: "friday-night-crew-7e3xkq" is "Friday
+  //  night crew". A board made without a name, or a code someone made up,
+  //  has none. The games work it out the same way (see leaderboard.js).
+  function boardName(board) {
+    var match = /^(.+)-[a-km-z2-9]{6}$/.exec(board || '');
+    if (!match) {
+      return null;
+    }
+    var words = match[1].replace(/-+/g, ' ');
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
   //  The link to send: this page with the board on the end.
   function boardLink(board) {
     var page = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
@@ -60,9 +79,41 @@
     }
   }
 
-  function showCurrent(board) {
+  //  Writes "before <name> after" into an element, with the board's name in
+  //  bold, or its code if it has no name.
+  function sayBoard(element, before, board, after) {
+    var name = boardName(board);
+    var part = document.createElement(name ? 'strong' : 'code');
+    part.textContent = name || board;
+    element.textContent = '';
+    element.appendChild(document.createTextNode(before));
+    element.appendChild(part);
+    element.appendChild(document.createTextNode(after));
+  }
+
+  //  The panel for the board this device is on: what it's called, its link
+  //  to copy or share, and a way to play on it. Once there's a board, the
+  //  form below it makes a new one instead.
+  function showCurrent(board, justMade) {
     document.getElementById('current').hidden = !board;
-    document.getElementById('currentCode').textContent = board || '';
+    document.getElementById('copied').textContent = '';
+    if (board) {
+      var message = document.getElementById('currentMessage');
+      if (justMade) {
+        sayBoard(message, 'Your board, ', board, ', is ready. Send this link to everyone who should be on it:');
+      } else {
+        sayBoard(message, 'This device is on ', board, '. Send this link to anyone else who should be on it:');
+      }
+      document.getElementById('boardLink').textContent = boardLink(board);
+      document.getElementById('boardNameLabel').textContent = 'New board name';
+      document.getElementById('makeButton').textContent = 'Make a new board';
+    }
+    //  On a board, the how-to steps matter less, and the form is folded away
+    //  until asked for.
+    document.getElementById('boards').classList.toggle('has-board', !!board);
+    document.getElementById('makeBoard').hidden = !!board;
+    document.getElementById('newBoard').hidden = !board;
+    document.getElementById('newBoard').setAttribute('aria-expanded', 'false');
     updatePlayLinks(board);
   }
 
@@ -73,14 +124,13 @@
       board = fromLink;
       saveBoard(board);
       var invite = document.getElementById('invite');
-      invite.textContent = "You're on the board " + board + '. Your best scores go on it.';
+      sayBoard(invite, "You're on ", board, '. Your best scores go on it.');
       invite.hidden = false;
     } else {
       board = loadBoard();
     }
-    showCurrent(board);
+    showCurrent(board, false);
 
-    var made = document.getElementById('made');
     var linkText = document.getElementById('boardLink');
     var status = document.getElementById('copied');
     var shareButton = document.getElementById('shareLink');
@@ -90,10 +140,15 @@
       e.preventDefault();
       var code = makeCode(document.getElementById('boardName').value);
       saveBoard(code);
-      showCurrent(code);
-      linkText.textContent = boardLink(code);
-      status.textContent = '';
-      made.hidden = false;
+      showCurrent(code, true);
+      document.getElementById('boardName').value = '';
+    });
+
+    document.getElementById('newBoard').addEventListener('click', function() {
+      document.getElementById('makeBoard').hidden = false;
+      this.hidden = true;
+      this.setAttribute('aria-expanded', 'true');
+      document.getElementById('boardName').focus();
     });
 
     document.getElementById('copyLink').addEventListener('click', function() {
@@ -110,9 +165,10 @@
     });
 
     shareButton.addEventListener('click', function() {
+      var name = boardName(new URL(linkText.textContent).searchParams.get('board'));
       navigator.share({
         title: 'Arcadia',
-        text: 'Join our leaderboard on Arcadia.',
+        text: name ? 'Join ' + name + ' on Arcadia.' : 'Join our leaderboard on Arcadia.',
         url: linkText.textContent
       }).catch(function() {
         //  Closing the share sheet isn't an error worth showing.

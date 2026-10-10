@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
-  <link href="./assets/arcadia.css?v=2.4.1" rel="stylesheet">
+  <link href="./assets/arcadia.css?v=2.5.3" rel="stylesheet">
   <!-- three.js draws the 3D scene at the top of the page. -->
   <script type="importmap">
     {
@@ -103,23 +103,21 @@
         </ol>
         <div class="panel">
           <div id="current" class="current" hidden>
-            <p>This device is on the board <code id="currentCode"></code>. Play, and your best scores go on it.</p>
-            <a class="btn primary play-link" href="games/space-cats/">Play Space Cats</a>
-          </div>
-          <form id="makeBoard" novalidate>
-            <label for="boardName">Board name</label>
-            <input id="boardName" type="text" maxlength="30" autocomplete="off" placeholder="The Friday night crew">
-            <button class="btn primary" type="submit">Make our board</button>
-          </form>
-          <div id="made" class="made" hidden>
-            <p>Your board is ready. Send this link to everyone who should be on it:</p>
+            <p id="currentMessage"></p>
             <p class="link-box" id="boardLink"></p>
             <div class="actions">
               <button id="copyLink" class="btn" type="button">Copy link</button>
               <button id="shareLink" class="btn" type="button" hidden>Share</button>
+              <a class="btn primary play-link" href="games/space-cats/">Play Space Cats</a>
             </div>
             <p id="copied" class="status" role="status"></p>
+            <button id="newBoard" class="text-btn" type="button" aria-controls="makeBoard" aria-expanded="false">Make a different board</button>
           </div>
+          <form id="makeBoard" novalidate>
+            <label for="boardName" id="boardNameLabel">Board name</label>
+            <input id="boardName" type="text" maxlength="30" autocomplete="off" placeholder="The Friday night crew">
+            <button class="btn primary" type="submit" id="makeButton">Make our board</button>
+          </form>
           <p class="note">Anyone with the link can see the board and add scores to it, so keep it to people you know. This device remembers the board once you've made or opened it.</p>
         </div>
       </div>
@@ -138,9 +136,9 @@
   </ul>
 
   <!-- Space Cats' own sprites and cats, so the page and the game always match. -->
-  <script src="games/space-cats/js/spacecats.js?v=1.0.0"></script>
-  <script src="assets/arcadia.js?v=2.4.1"></script>
-  <script type="module" src="assets/scene.js?v=2.4.1"></script>
+  <script src="games/space-cats/js/spacecats.js?v=1.1.0"></script>
+  <script src="assets/arcadia.js?v=2.5.3"></script>
+  <script type="module" src="assets/scene.js?v=2.5.3"></script>
 </body>
 
 </html>

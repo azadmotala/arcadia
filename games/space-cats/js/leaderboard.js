@@ -60,14 +60,35 @@ var Leaderboard = (function() {
   }
 
   //  The board's code: from the link if it has one, otherwise the one this
-  //  device was given before.
+  //  device was given before. Early versions of the home page saved it
+  //  without JSON, so a bare code is read too.
   function findBoard() {
     var match = /[?&]board=([A-Za-z0-9-]{6,40})(?:&|$)/.exec(window.location.search);
     if (match) {
       save(KEYS.board, match[1]);
       return match[1];
     }
-    return load(KEYS.board, null);
+    var saved = load(KEYS.board, null);
+    if (saved === null) {
+      try {
+        saved = window.localStorage.getItem(KEYS.board);
+      } catch (e) {
+        saved = null;
+      }
+    }
+    return typeof saved === 'string' && /^[A-Za-z0-9-]{6,40}$/.test(saved) ? saved : null;
+  }
+
+  //  The board's name, from its code: "friday-night-crew-7e3xkq" is "Friday
+  //  night crew". A board made without a name, or a code someone made up,
+  //  has none. The home page works it out the same way (assets/arcadia.js).
+  function boardName() {
+    var match = /^(.+)-[a-km-z2-9]{6}$/.exec(board || '');
+    if (!match) {
+      return null;
+    }
+    var words = match[1].replace(/-+/g, ' ');
+    return words.charAt(0).toUpperCase() + words.slice(1);
   }
 
   var board = findBoard();
@@ -316,6 +337,7 @@ var Leaderboard = (function() {
 
   var api = {
     board: function() { return board; },
+    name: boardName,
     status: function() { return status; },
     size: SIZE,
     top: top,

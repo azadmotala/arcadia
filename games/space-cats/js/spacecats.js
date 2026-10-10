@@ -896,7 +896,7 @@ function drawLeaderboard(game, ctx, y) {
   ctx.textAlign = "center";
   ctx.font = "14px Arial";
   ctx.fillStyle = '#ffd54f';
-  ctx.fillText("Leaderboard", x, y);
+  ctx.fillText(board.name() || "Leaderboard", x, y);
   ctx.font = "13px Arial";
   if (!entries.length) {
     ctx.fillStyle = '#888888';
