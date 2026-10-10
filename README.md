@@ -62,7 +62,7 @@ arcadia/
 └── .firebaserc           Arcadia's Firebase project
 ```
 
-The top of the home page is a 3D scene, drawn with [three.js](https://threejs.org) in `assets/scene.js`: a neon grid, wireframe mountains, and Space Cats' fleet and cats built in blocks from the game's own pixel art. The page loads Space Cats' script for those sprites, so change a cat in `games/space-cats/js/spacecats.js` and the home page follows. Where WebGL isn't available, the page shows the name on its own, and with reduced motion switched on, the scene holds still.
+The top of the home page is a 3D scene, drawn with [three.js](https://threejs.org) in `assets/scene.js`: a neon grid, wireframe mountains, and Space Cats' fleet and cats built in blocks from the game's own pixel art. The page loads Space Cats' script for those sprites, so change a cat in `games/space-cats/js/spacecats.js` and the home page follows. Where WebGL isn't available, the page shows the name on its own. With Reduce Motion switched on, the scene runs a calm version: slower, with no shooting, flicker or leaning.
 
 ## The leaderboards
 

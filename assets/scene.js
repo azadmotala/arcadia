@@ -15,7 +15,17 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const canvas = document.getElementById('scene');
-const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+//  With Reduce Motion on, the scene runs a calm version: slower, with no
+//  shooting, flicker, spinning or leaning. It follows the setting if it
+//  changes while the page is open.
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let calm = motionQuery.matches;
+const onMotionChange = e => { calm = e.matches; };
+if (motionQuery.addEventListener) {
+  motionQuery.addEventListener('change', onMotionChange);
+} else {
+  motionQuery.addListener(onMotionChange);
+}
 
 let renderer;
 try {
@@ -384,11 +394,17 @@ window.addEventListener('pointermove', e => {
   pointer.y = e.clientY / window.innerHeight - 0.5;
 });
 
-let poseTimer = 0, pose = 0, kills = 0;
-function update(dt, time) {
+let poseTimer = 0, pose = 0, kills = 0, clock = 0;
+function update(realDt) {
+  //  The scene keeps its own clock, which runs at a third of the speed in
+  //  the calm version.
+  const dt = realDt * (calm ? 0.35 : 1);
+  clock += dt;
+  const time = clock;
+
   floorMaterial.uniforms.uTime.value = time;
-  beams.rotation.z = Math.sin(time * 0.15) * 0.08;
-  signMaterial.opacity = Math.random() < 0.012 ? 0.55 : 1;
+  beams.rotation.z = calm ? 0 : Math.sin(time * 0.15) * 0.08;
+  signMaterial.opacity = !calm && Math.random() < 0.012 ? 0.55 : 1;
 
   //  The fleet bobs and marches in two poses.
   poseTimer += dt;
@@ -403,8 +419,8 @@ function update(dt, time) {
     }
     group.scale.setScalar(Math.min(1, group.scale.x + dt * 3));
     group.position.y = d.home.y + Math.sin(time * 1.3 + d.phase) * 0.35;
-    group.rotation.y = Math.sin(time * 0.7 + d.phase) * 0.35;
-    group.rotation.z = Math.sin(time * 0.9 + d.phase) * 0.08;
+    group.rotation.y = Math.sin(time * 0.7 + d.phase) * (calm ? 0.15 : 0.35);
+    group.rotation.z = calm ? 0 : Math.sin(time * 0.9 + d.phase) * 0.08;
     d.poses[0].visible = pose === 0;
     d.poses[1].visible = pose === 1;
   });
@@ -431,9 +447,10 @@ function update(dt, time) {
   }
   updateSparks(dt);
 
-  //  Now and then the cat fires at one of the fleet.
+  //  Now and then the cat fires at one of the fleet, except in the calm
+  //  version.
   fireTimer -= dt;
-  if (!shot && fireTimer <= 0) {
+  if (!calm && !shot && fireTimer <= 0) {
     const targets = arc.filter(g => g.visible && g.userData.respawn <= 0);
     if (targets.length) {
       const target = targets[Math.floor(Math.random() * targets.length)];
@@ -462,10 +479,11 @@ function update(dt, time) {
   }
   updateBits(dt, time);
 
-  //  The camera leans with the pointer.
+  //  The camera leans with the pointer, or holds still in the calm version.
   const base = camera.userData.base;
-  camera.position.x += (base.x + pointer.x * 3 - camera.position.x) * 0.04;
-  camera.position.y += (base.y - pointer.y * 1.2 - camera.position.y) * 0.04;
+  const lean = calm ? 0 : 1;
+  camera.position.x += (base.x + pointer.x * 3 * lean - camera.position.x) * 0.04;
+  camera.position.y += (base.y - pointer.y * 1.2 * lean - camera.position.y) * 0.04;
   camera.lookAt(lookAt);
 }
 
@@ -481,7 +499,7 @@ function frame(ms) {
   const dt = last ? Math.min(time - last, 0.05) : 0;
   last = time;
   if (visible) {
-    update(dt, time);
+    update(dt);
     composer.render();
   }
   requestAnimationFrame(frame);
@@ -489,10 +507,5 @@ function frame(ms) {
 
 document.fonts.load('400 330px "Tilt Neon"').catch(() => {}).then(() => {
   drawSign();
-  if (still) {
-    update(0, 0);
-    composer.render();
-  } else {
-    requestAnimationFrame(frame);
-  }
+  requestAnimationFrame(frame);
 });
