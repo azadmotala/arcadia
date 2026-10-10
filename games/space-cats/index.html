@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Space Cats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- The ./ stops Vite's build reading these as package names. The ?v=
+       matches the version in package.json: change both with each release,
+       so browsers load that release's files rather than older copies. -->
+  <link href="./css/core.css?v=1.0.0" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.0.0" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.0.0" rel="stylesheet" type="text/css" />
+  <!-- A cat in the browser tab, and on the home screen when the game is
+       added to a phone. The game redraws the tab's cat as the one you play
+       as. The manifest gives Android its icons and name. -->
+  <link id="tabIcon" href="./icons/favicon-32.png" rel="icon" type="image/png">
+  <link href="./icons/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="./icons/manifest.webmanifest" rel="manifest">
+  <meta name="apple-mobile-web-app-title" content="Space Cats">
+</head>
+
+<body>
+  <div id="starfield"></div>
+  <div id="gamecontainer">
+    <canvas id="gameCanvas"></canvas>
+    <form id="initials" hidden>
+      <p id="initialsMessage"></p>
+      <input id="initialsInput" maxlength="3" autocomplete="off" autocapitalize="characters"
+        spellcheck="false" aria-label="Your initials" placeholder="AAA">
+      <p id="initialsHint">Three letters</p>
+      <div>
+        <button type="submit">Save</button>
+        <button type="button" id="initialsSkip">Skip</button>
+      </div>
+    </form>
+  </div>
+  <div id="info">
+    <p id="keys">Arrow keys to move, space to fire, P to pause. <a id="homeLink" href="../../">Back to Arcadia</a></p>
+    <div id="buttons">
+      <button id="pauseButton" type="button" onclick="game.togglePause()" hidden>Pause</button>
+      <button id="coloursButton" type="button" onclick="toggleColours()">Random colours</button>
+      <button id="muteButton" type="button" onclick="toggleMute()">Mute</button>
+    </div>
+  </div>
+
+  <script src="js/starfield.js?v=1.0.0"></script>
+  <script src="js/spacecats.js?v=1.0.0"></script>
+  <script src="js/leaderboard.js?v=1.0.0"></script>
+  <script>
+    //  Create the starfield.
+    var container = document.getElementById('starfield');
+    var starfield = new Starfield();
+    starfield.initialise(container);
+    starfield.start();
+
+    //  Setup the canvas.
+    var canvas = document.getElementById("gameCanvas");
+    canvas.width = 800;
+    canvas.height = 600;
+
+    //  Create the game.
+    var game = new Game();
+
+    //  Initialise it with the game canvas.
+    game.initialise(canvas);
+
+    //  The Arcadia home page. On touch screens the start screen links to it.
+    game.homeUrl = '../../';
+
+    //  Phones and tablets get touch controls and a game scaled to fit. The
+    //  800x600 canvas is mostly empty space around a 400x300 play area, so
+    //  they only see this part of it (including the fish's path along the
+    //  top), plus room for the buttons.
+    var PLAY_AREA = { x: 180, y: 122, width: 440, height: 428 };
+    //  Room the buttons need down the right-hand side, or across the top.
+    var BUTTON_COLUMN_WIDTH = 164;
+    var BUTTON_ROW_HEIGHT = 56;
+    var touchMode = window.matchMedia('(pointer: coarse)').matches;
+    game.touchMode = touchMode;
+    if (touchMode) {
+      document.documentElement.classList.add('touch');
+      fitGame();
+      window.addEventListener('resize', fitGame);
+    } else {
+      fitDesktop();
+      window.addEventListener('resize', fitDesktop);
+    }
+
+    //  The family leaderboard, if this device has one (see js/leaderboard.js).
+    game.leaderboard = Leaderboard;
+    var initialsForm = document.getElementById('initials');
+    var initialsInput = document.getElementById('initialsInput');
+    var initialsHint = document.getElementById('initialsHint');
+    var onInitialsSaved = null;
+    var lastGameOver = null;
+
+    //  Keep the buttons and the leaderboard in step with the game.
+    game.onStateChange = function () {
+      updateButtons();
+      leaderboardStateChanged();
+    };
+
+    //  The first time a device opens a board, offer its existing high score.
+    Leaderboard.onUpdate = function () {
+      if (game.currentState() instanceof WelcomeState && !initialsOpen() && Leaderboard.shouldOffer(game.highScore)) {
+        var best = game.highScore;
+        Leaderboard.markOffered();
+        askForInitials('Add the best score on this device, ' + best + ', to the leaderboard?', function (initials) {
+          Leaderboard.highlightId = Leaderboard.submit(initials, best);
+        });
+      }
+    };
+
+    //  Start the game.
+    game.start();
+
+    //  Listen for keyboard events, unless the player is typing their initials.
+    window.addEventListener("keydown", function keydown(e) {
+      if (initialsOpen()) return;
+      var keycode = e.which || window.event.keycode;
+      //  Supress further processing of left/right/space (37/29/32)
+      if (keycode == 37 || keycode == 39 || keycode == 32) {
+        e.preventDefault();
+      }
+      //  A held key repeats. Outside of play, ignore the repeats, so holding
+      //  Space as a game ends doesn't skip past the cat picker.
+      if (e.repeat && !(game.currentState() instanceof PlayState)) return;
+      game.keyDown(keycode);
+
+    });
+
+    //  Clicking a cat on the start screen picks it.
+    canvas.addEventListener('click', function (e) {
+      game.click(e);
+    });
+    window.addEventListener("keyup", function keydown(e) {
+      if (initialsOpen()) return;
+      var keycode = e.which || window.event.keycode;
+      game.keyUp(keycode);
+    });
+
+    //  Touches go to the game, except taps on the buttons and the initials
+    //  box. Stopping the default keeps the browser from scrolling or zooming
+    //  mid-wave. While the initials box is open, the game ignores touches.
+    function onButton(e) {
+      return e.target.closest && e.target.closest('button, a, input, #initials');
+    }
+    window.addEventListener('touchstart', function (e) {
+      if (onButton(e)) return;
+      e.preventDefault();
+      if (initialsOpen()) return;
+      game.touchstart(e);
+    }, { passive: false });
+    window.addEventListener('touchmove', function (e) {
+      if (onButton(e)) return;
+      e.preventDefault();
+      if (initialsOpen()) return;
+      game.touchmove(e);
+    }, { passive: false });
+    ['touchend', 'touchcancel'].forEach(function (type) {
+      window.addEventListener(type, function (e) {
+        if (!onButton(e)) e.preventDefault();
+        game.touchend(e);
+      }, { passive: false });
+    });
+
+    //  Browsers keep sound off until the player interacts with the page.
+    ['keydown', 'touchstart', 'touchend', 'click'].forEach(function (type) {
+      window.addEventListener(type, function () {
+        game.sounds.unlock();
+      });
+    });
+
+    //  Pause when the player switches to another tab or app, so the game,
+    //  and its sound, stop until they come back.
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && game.currentState() instanceof PlayState) {
+        game.togglePause();
+      }
+    });
+
+    function toggleMute() {
+      game.mute();
+      updateButtons();
+    }
+
+    function toggleColours() {
+      game.toggleRandomColours();
+      updateButtons();
+    }
+
+    function updateButtons() {
+      var state = game.currentState();
+      var paused = state instanceof PauseState;
+      var pauseButton = document.getElementById('pauseButton');
+      pauseButton.textContent = paused ? 'Resume' : 'Pause';
+      pauseButton.hidden = !(paused || state instanceof PlayState);
+      document.getElementById('muteButton').textContent = game.sounds.mute ? 'Unmute' : 'Mute';
+      document.getElementById('coloursButton').textContent = game.randomColours ? 'All green' : 'Random colours';
+    }
+
+    //  When a game ends with a score that makes the leaderboard, ask for the
+    //  player's initials, filled in with the last ones used on this device.
+    //  The start and game-over screens fetch the latest board.
+    function leaderboardStateChanged() {
+      var state = game.currentState();
+      if (state instanceof LevelIntroState) {
+        Leaderboard.highlightId = null;
+      }
+      if (state instanceof GameOverState && state !== lastGameOver) {
+        lastGameOver = state;
+        var score = game.score;
+        if (Leaderboard.qualifies(score)) {
+          askForInitials('You made the leaderboard with ' + score + '!', function (initials) {
+            Leaderboard.highlightId = Leaderboard.submit(initials, score);
+          });
+        }
+      }
+      if (state instanceof WelcomeState || state instanceof GameOverState) {
+        Leaderboard.refresh();
+      }
+    }
+
+    function initialsOpen() {
+      return !initialsForm.hidden;
+    }
+
+    function askForInitials(message, onSave) {
+      document.getElementById('initialsMessage').textContent = message;
+      initialsInput.value = Leaderboard.initials();
+      initialsHint.textContent = 'Three letters';
+      onInitialsSaved = onSave;
+      initialsForm.hidden = false;
+      //  On a computer this puts the cursor in the box. Phones open their
+      //  keyboard when the box is tapped.
+      initialsInput.focus();
+    }
+
+    function closeInitials() {
+      initialsForm.hidden = true;
+      onInitialsSaved = null;
+      initialsInput.blur();
+    }
+
+    //  Capital letters only, three at most.
+    initialsInput.addEventListener('input', function () {
+      initialsInput.value = initialsInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    });
+
+    initialsForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var initials = initialsInput.value;
+      if (!/^[A-Z]{3}$/.test(initials)) {
+        initialsHint.textContent = 'Please use three letters';
+        initialsInput.focus();
+        return;
+      }
+      var onSave = onInitialsSaved;
+      closeInitials();
+      onSave(initials);
+    });
+
+    document.getElementById('initialsSkip').addEventListener('click', closeInitials);
+    initialsForm.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        closeInitials();
+      }
+    });
+
+    //  Clicking a button mustn't give it keyboard focus, or the next press of
+    //  Space would press the button again instead of firing.
+    document.getElementById('buttons').addEventListener('mousedown', function (e) {
+      e.preventDefault();
+    });
+
+    //  On touch screens, show just the play area, scaled to fill the screen.
+    function fitGame() {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+
+      //  Put the buttons down the right-hand side (landscape) or across the
+      //  top (portrait), whichever leaves the game bigger. Across the top,
+      //  the game sits a little above centre to leave room for a thumb.
+      var besideScale = Math.min((w - 2 * BUTTON_COLUMN_WIDTH) / PLAY_AREA.width, h / PLAY_AREA.height);
+      var belowScale = Math.min(w / PLAY_AREA.width, (h - BUTTON_ROW_HEIGHT) / PLAY_AREA.height);
+      var column = besideScale > belowScale;
+      var scale = column ? besideScale : belowScale;
+      var top = column
+        ? (h - PLAY_AREA.height * scale) / 2
+        : BUTTON_ROW_HEIGHT + (h - BUTTON_ROW_HEIGHT - PLAY_AREA.height * scale) / 3;
+      var left = (w - PLAY_AREA.width * scale) / 2;
+      document.getElementById('buttons').classList.toggle('column', column);
+
+      var gameContainer = document.getElementById('gamecontainer');
+      gameContainer.style.left = left + 'px';
+      gameContainer.style.top = top + 'px';
+      gameContainer.style.width = PLAY_AREA.width * scale + 'px';
+      gameContainer.style.height = PLAY_AREA.height * scale + 'px';
+      canvas.style.left = -PLAY_AREA.x * scale + 'px';
+      canvas.style.top = -PLAY_AREA.y * scale + 'px';
+      canvas.style.width = game.width * scale + 'px';
+      canvas.style.height = game.height * scale + 'px';
+      setCanvasResolution(scale);
+    }
+
+    //  On computers, keep the canvas 800x600 on the page.
+    function fitDesktop() {
+      canvas.style.width = game.width + 'px';
+      canvas.style.height = game.height + 'px';
+      setCanvasResolution(1);
+    }
+
+    //  Draw at the screen's real resolution, not the page's, so the sprites
+    //  and text stay sharp on high-resolution screens and when zoomed in.
+    function setCanvasResolution(scale) {
+      var ratio = Math.min(scale * (window.devicePixelRatio || 1), 3);
+      var width = Math.round(game.width * ratio);
+      var height = Math.round(game.height * ratio);
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').setTransform(width / game.width, 0, 0, height / game.height, 0, 0);
+      }
+    }
+  </script>
+</body>
+
+</html>

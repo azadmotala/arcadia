@@ -1,0 +1,508 @@
+/* Arcadia's home page: green phosphor on black, like the games. */
+
+:root {
+	--bg: #030703;
+	--panel: #061006;
+	--green: #64dd17;
+	--green-bright: #b4ff7a;
+	--green-dim: #2b5a12;
+	--ink: #d8ffc4;
+	--muted: #86ad70;
+	--amber: #ffd54f;
+	--glow: 0 0 6px rgba(100, 221, 23, 0.55), 0 0 18px rgba(100, 221, 23, 0.25);
+	--display: "Silkscreen", "Courier New", monospace;
+	--body: "VT323", "Courier New", monospace;
+	--gutter: 16px;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	background: var(--bg);
+	scroll-behavior: smooth;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font: 22px/1.35 var(--body);
+	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
+}
+
+/* Scanlines and a dark edge over everything, like an old monitor. */
+body::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 10;
+	background:
+		repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+		radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+a {
+	color: var(--green-bright);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+	outline: 2px solid var(--amber);
+	outline-offset: 3px;
+}
+
+.skip {
+	position: absolute;
+	left: -9999px;
+}
+
+.skip:focus {
+	left: var(--gutter);
+	top: var(--gutter);
+	z-index: 20;
+	padding: 6px 10px;
+	background: var(--bg);
+}
+
+h1,
+h2,
+.label,
+.button,
+label {
+	font-family: var(--display);
+}
+
+h2 {
+	margin: 0 0 16px;
+	font-size: clamp(28px, 6vw, 44px);
+	line-height: 1;
+	color: var(--green);
+	text-shadow: var(--glow);
+	text-transform: uppercase;
+}
+
+p {
+	margin: 0 0 14px;
+}
+
+.label {
+	margin: 0 0 18px;
+	font-size: 14px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--amber);
+}
+
+.label::before {
+	content: "> ";
+	color: var(--green);
+}
+
+/* The top of the page: the fleet marches across a canvas behind the name,
+   in a band of its own above the text. */
+.hero {
+	position: relative;
+	min-height: min(92vh, 820px);
+	display: flex;
+	align-items: flex-end;
+	padding: 270px var(--gutter) 64px;
+	border-bottom: 2px solid var(--green-dim);
+	overflow: hidden;
+}
+
+#attract {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+}
+
+.hero-text {
+	position: relative;
+	width: 100%;
+	max-width: 980px;
+	margin: 0 auto;
+}
+
+.kicker {
+	font-size: 20px;
+	color: var(--muted);
+	letter-spacing: 0.04em;
+}
+
+.wordmark {
+	margin: 0 0 18px;
+	font-family: var(--display);
+	font-weight: 700;
+	font-size: clamp(54px, 15vw, 150px);
+	line-height: 0.9;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--green);
+	text-shadow: var(--glow), 4px 4px 0 var(--green-dim);
+	animation: flicker 6s infinite;
+}
+
+.wordmark.small {
+	font-size: 22px;
+	text-shadow: var(--glow);
+	animation: none;
+}
+
+.lead {
+	max-width: 30ch;
+	font-size: clamp(26px, 4.4vw, 36px);
+	line-height: 1.15;
+	color: var(--ink);
+}
+
+.aside {
+	color: var(--amber);
+	font-size: 24px;
+}
+
+.invite {
+	display: inline-block;
+	padding: 8px 12px;
+	border: 1px dashed var(--amber);
+	color: var(--amber);
+}
+
+.invite[hidden] {
+	display: none;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 22px;
+}
+
+/* Buttons are chunky arcade buttons that press in. */
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 48px;
+	padding: 10px 18px;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	text-decoration: none;
+	color: var(--green-bright);
+	background: transparent;
+	border: 2px solid var(--green);
+	box-shadow: 4px 4px 0 var(--green-dim);
+	cursor: pointer;
+	transition: transform 80ms, box-shadow 80ms, background 120ms;
+}
+
+.button:hover {
+	background: rgba(100, 221, 23, 0.1);
+}
+
+.button:active {
+	transform: translate(4px, 4px);
+	box-shadow: 0 0 0 var(--green-dim);
+}
+
+.button.primary {
+	color: var(--bg);
+	background: var(--green);
+	text-shadow: none;
+}
+
+.button.primary:hover {
+	background: var(--green-bright);
+}
+
+main {
+	max-width: 980px;
+	margin: 0 auto;
+	padding: 0 var(--gutter);
+}
+
+section {
+	padding: 72px 0 24px;
+}
+
+/* A game, shown as a cabinet: its screen and what it's about. */
+.cabinet {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+	gap: 36px;
+	align-items: start;
+}
+
+.screen {
+	display: block;
+	padding: 14px;
+	background: #000;
+	border: 2px solid var(--green-dim);
+	outline: 6px solid var(--panel);
+	box-shadow: 0 0 40px rgba(100, 221, 23, 0.12);
+	transform: rotate(-1.2deg);
+	transition: transform 200ms;
+}
+
+.screen:hover {
+	transform: rotate(0deg) scale(1.01);
+}
+
+.screen img {
+	display: block;
+	width: 100%;
+	height: auto;
+	image-rendering: pixelated;
+}
+
+.cabinet-text p {
+	color: var(--ink);
+}
+
+.roster {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px 18px;
+	margin: 18px 0;
+	padding: 0;
+	list-style: none;
+}
+
+.roster li {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	font-size: 20px;
+}
+
+.roster canvas {
+	width: 44px;
+	height: 36px;
+	image-rendering: pixelated;
+}
+
+.facts {
+	margin: 0 0 24px;
+	padding: 0;
+	list-style: none;
+	color: var(--muted);
+}
+
+.facts li::before {
+	content: "* ";
+	color: var(--green);
+}
+
+.coming {
+	margin-top: 48px;
+	font-family: var(--display);
+	font-size: 14px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.cursor {
+	animation: blink 1s steps(1) infinite;
+}
+
+/* Family boards. */
+.intro {
+	max-width: 46ch;
+	font-size: 26px;
+	line-height: 1.2;
+}
+
+.boards-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+	gap: 36px;
+	margin-top: 30px;
+}
+
+.steps {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: step;
+}
+
+.steps li {
+	position: relative;
+	padding: 0 0 22px 64px;
+	counter-increment: step;
+}
+
+.steps li::before {
+	content: counter(step);
+	position: absolute;
+	left: 0;
+	top: -4px;
+	width: 44px;
+	height: 44px;
+	display: grid;
+	place-items: center;
+	font-family: var(--display);
+	font-size: 22px;
+	color: var(--bg);
+	background: var(--green);
+	box-shadow: 3px 3px 0 var(--green-dim);
+}
+
+.steps strong {
+	color: var(--green-bright);
+	font-weight: normal;
+}
+
+.terminal {
+	padding: 22px;
+	background: var(--panel);
+	border: 2px solid var(--green-dim);
+}
+
+.terminal form {
+	display: grid;
+	gap: 10px;
+}
+
+label {
+	font-size: 13px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--amber);
+}
+
+input[type="text"] {
+	width: 100%;
+	min-height: 48px;
+	padding: 8px 12px;
+	font: 26px var(--body);
+	color: var(--green-bright);
+	background: #000;
+	border: 2px solid var(--green-dim);
+	border-radius: 0;
+	caret-color: var(--amber);
+}
+
+input[type="text"]::placeholder {
+	color: var(--green-dim);
+}
+
+.terminal .button {
+	justify-self: start;
+}
+
+.current,
+.made {
+	margin-bottom: 22px;
+}
+
+.current[hidden],
+.made[hidden] {
+	display: none;
+}
+
+.made {
+	margin-top: 22px;
+}
+
+.link-box {
+	padding: 10px 12px;
+	background: #000;
+	border: 1px dashed var(--green);
+	overflow-wrap: anywhere;
+}
+
+code {
+	font-family: var(--body);
+	font-size: 1em;
+	color: var(--amber);
+}
+
+.status {
+	min-height: 1.35em;
+	margin: 12px 0 0;
+	color: var(--amber);
+}
+
+.note {
+	margin: 22px 0 0;
+	font-size: 19px;
+	color: var(--muted);
+}
+
+.footer {
+	max-width: 980px;
+	margin: 72px auto 0;
+	padding: 28px var(--gutter) 48px;
+	border-top: 2px solid var(--green-dim);
+	color: var(--muted);
+	font-size: 20px;
+}
+
+@keyframes blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+@keyframes flicker {
+	0%, 96%, 100% {
+		opacity: 1;
+	}
+	97% {
+		opacity: 0.82;
+	}
+	98% {
+		opacity: 1;
+	}
+	99% {
+		opacity: 0.9;
+	}
+}
+
+@media (max-width: 760px) {
+	.cabinet,
+	.boards-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.screen {
+		transform: none;
+	}
+
+	.hero {
+		padding-top: 210px;
+		padding-bottom: 40px;
+	}
+
+	section {
+		padding-top: 56px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+
+	.wordmark,
+	.cursor {
+		animation: none;
+	}
+
+	.screen,
+	.button {
+		transition: none;
+	}
+}

@@ -1,0 +1,204 @@
+/* Styling needed for a fullscreen canvas and no scrollbars. */
+body,
+html {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+#starfield {
+	width: 100%;
+	height: 100%;
+	z-index: -1;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+}
+
+#gamecontainer {
+	position: relative;
+	width: 800px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#gamecanvas {
+	width: 800px;
+	height: 600px;
+}
+
+#info {
+	width: 800px;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+	color: #999999;
+}
+
+/* Pause, colours and mute buttons: a row under the game on desktop. */
+#buttons {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+/* Fixed widths, so changing labels never moves the buttons or the game. */
+#buttons button,
+#initials button {
+	width: 84px;
+	height: 40px;
+	padding: 0;
+	font: 15px "Helvetica Neue", Helvetica, Arial, sans-serif;
+	white-space: nowrap;
+	color: #ffffff;
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	border-radius: 20px;
+	cursor: pointer;
+}
+
+#buttons #coloursButton {
+	width: 148px;
+}
+
+#buttons button[hidden] {
+	display: none;
+}
+
+@media (hover: hover) {
+	#buttons button:hover,
+	#initials button:hover {
+		background: rgba(255, 255, 255, 0.22);
+	}
+}
+
+/* Asks for initials, over the middle of the game, when a score makes the
+   leaderboard. */
+#initials {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 240px;
+	padding: 16px;
+	text-align: center;
+	color: #ffffff;
+	font: 15px "Helvetica Neue", Helvetica, Arial, sans-serif;
+	background: #111111;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	border-radius: 12px;
+}
+
+#initials[hidden] {
+	display: none;
+}
+
+#initials p {
+	margin: 0 0 10px;
+	line-height: 20px;
+}
+
+/* 28px also stops phones zooming in when the box is tapped. */
+#initialsInput {
+	width: 4.5em;
+	padding: 2px 0 2px 0.3em;
+	font: 28px "Courier New", Courier, monospace;
+	letter-spacing: 0.3em;
+	text-align: center;
+	text-transform: uppercase;
+	color: #ffd54f;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+	border-radius: 0;
+	outline: none;
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+#initials #initialsHint {
+	margin: 6px 0 12px;
+	font-size: 13px;
+	color: #999999;
+}
+
+#initials div {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+}
+
+/* Touch screens: the game is scaled to fit (see fitGame in index.html),
+   and the page doesn't scroll, zoom or select text under a dragging thumb. */
+.touch,
+.touch body {
+	touch-action: none;
+	overscroll-behavior: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* No gap under the starfield, so there's nothing to scroll. */
+.touch #starfield canvas {
+	display: block;
+}
+
+.touch #gamecontainer {
+	position: absolute;
+	overflow: hidden;
+	margin: 0;
+}
+
+.touch #gameCanvas {
+	position: absolute;
+}
+
+/* No keyboard hints on touch screens, and the buttons move to the corner. */
+.touch #info {
+	width: auto;
+}
+
+.touch #keys {
+	display: none;
+}
+
+.touch #buttons {
+	position: fixed;
+	top: calc(8px + env(safe-area-inset-top));
+	right: calc(8px + env(safe-area-inset-right));
+	margin: 0;
+}
+
+/* Down the right-hand side in landscape (fitGame decides). */
+.touch #buttons.column {
+	flex-direction: column;
+	align-items: flex-end;
+}
+
+/* On touch screens Pause keeps its place when hidden, so nothing moves. */
+.touch #buttons button[hidden] {
+	display: block;
+	visibility: hidden;
+}
+
+/* Narrow phones: smaller buttons so all three fit across the top. */
+@media (max-width: 359px) {
+	#buttons button {
+		width: 72px;
+		font-size: 13px;
+	}
+
+	#buttons #coloursButton {
+		width: 124px;
+	}
+}
+/* Back to the Arcadia home page, after the keyboard hints. */
+#homeLink {
+	margin-left: 8px;
+	color: #64dd17;
+}

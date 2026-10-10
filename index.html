@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Arcadia</title>
+  <meta name="description" content="Old-school arcade games that run in your browser, with a leaderboard just for your family and friends.">
+  <meta name="theme-color" content="#030703">
+  <link href="./assets/favicon-32.png" rel="icon" type="image/png">
+  <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <link href="./assets/arcadia.css?v=1.0.0" rel="stylesheet">
+</head>
+
+<body>
+  <a class="skip" href="#games">Skip to the games</a>
+
+  <header class="hero">
+    <canvas id="attract" aria-hidden="true"></canvas>
+    <div class="hero-text">
+      <p class="kicker">Free to play &middot; No downloads &middot; No sign-up</p>
+      <h1 class="wordmark">Arcadia</h1>
+      <p class="lead">Old-school arcade games that run in your browser, with a leaderboard just for your family and friends.</p>
+      <p class="aside">You don't have to beat the world. Only the people on your sofa.</p>
+      <p id="invite" class="invite" hidden></p>
+      <div class="actions">
+        <a class="button primary play-link" href="games/space-cats/">Play Space Cats</a>
+        <a class="button" href="#boards">Make a family board</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="games" class="cabinet-row" aria-labelledby="space-cats-title">
+      <p class="label">Now playing</p>
+      <article class="cabinet">
+        <a class="screen play-link" href="games/space-cats/" aria-label="Play Space Cats">
+          <img src="assets/space-cats.png" width="450" height="432"
+            alt="Space Cats in play: a green fleet of mice in saucers, rat knights and bats above four moon rocks, with Nala the yellow cat firing up from below">
+        </a>
+        <div class="cabinet-text">
+          <h2 id="space-cats-title">Space Cats</h2>
+          <p>Mice in flying saucers, rat knights and bats are marching down. Five cats are all that stand in their way.</p>
+          <p>Pick your cat and shelter behind the moon rocks. Score 2,000 points and the fourth cat joins you. Reach 6,000 and the fifth one does.</p>
+          <ul id="roster" class="roster" aria-label="The five cats"></ul>
+          <ul class="facts">
+            <li>Plays on phones, tablets and computers</li>
+            <li>Arrow keys and Space, or drag and hold</li>
+            <li>Five cats, five lives</li>
+          </ul>
+          <a class="button primary play-link" href="games/space-cats/">Play Space Cats</a>
+        </div>
+      </article>
+      <p class="coming">More cabinets are on the way<span class="cursor" aria-hidden="true">_</span></p>
+    </section>
+
+    <section id="boards" class="boards" aria-labelledby="boards-title">
+      <p class="label">Family boards</p>
+      <h2 id="boards-title">Your own leaderboard</h2>
+      <p class="intro">Make a board for your family or friends and send everyone the link. Their best scores land on the same top 10, from any phone, tablet or computer.</p>
+
+      <div class="boards-grid">
+        <ol class="steps">
+          <li><strong>Name it.</strong> Anything you like. A few random letters go on the end so nobody can guess it.</li>
+          <li><strong>Send the link.</strong> Drop it in the family WhatsApp group, or text it to your friends.</li>
+          <li><strong>Play.</strong> Every score that makes the top 10 goes on the board with your initials.</li>
+        </ol>
+
+        <div class="terminal">
+          <div id="current" class="current" hidden>
+            <p>This device is on the board <code id="currentCode"></code>. Play, and your best scores go on it.</p>
+            <a class="button primary play-link" href="games/space-cats/">Play on this board</a>
+          </div>
+
+          <form id="makeBoard" novalidate>
+            <label for="boardName">Board name</label>
+            <input id="boardName" name="boardName" type="text" maxlength="30" autocomplete="off" placeholder="The Friday night crew">
+            <button class="button primary" type="submit">Make our board</button>
+          </form>
+
+          <div id="made" class="made" hidden>
+            <p>Your board is ready. Send this link to everyone who should be on it:</p>
+            <p class="link-box"><code id="boardLink"></code></p>
+            <div class="actions">
+              <button id="copyLink" class="button" type="button">Copy link</button>
+              <button id="shareLink" class="button" type="button" hidden>Share</button>
+            </div>
+            <p id="copied" class="status" role="status"></p>
+          </div>
+
+          <p class="note">Anyone with the link can see the board and add scores to it, so keep it to people you know. This device remembers the board once you've made or opened it.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><span class="wordmark small">Arcadia</span></p>
+    <p><a href="https://github.com/azadmotala/arcadia">The code is on GitHub</a>. Space Cats builds on Dave Kerr's <a href="https://github.com/dwmkerr/spaceinvaders">spaceinvaders</a>, which is MIT licensed.</p>
+  </footer>
+
+  <!-- Space Cats' own sprites and cats, so the page and the game always match. -->
+  <script src="games/space-cats/js/spacecats.js?v=1.0.0"></script>
+  <script src="assets/arcadia.js?v=1.0.0"></script>
+</body>
+
+</html>

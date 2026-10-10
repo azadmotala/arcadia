@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Rules for Arcadia's leaderboards. Publish them with
+// firebase deploy --only firestore:rules (see firebase.json).
+//
+// A family or group's board lives at boards/{code}, where the code is the
+// private ?board= part of their link. Each game keeps its own top 10 on the
+// board, at boards/{code}/games/{game}/scores. There are no rules for
+// listing boards, so a board can only be read by someone who knows its code.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The games that keep scores. Add a game's name here when it's ready.
+    function isGame(game) {
+      return game in ['space-cats'];
+    }
+
+    match /boards/{board}/games/{game}/scores/{scoreId} {
+      allow read: if isGame(game);
+
+      // Only a game (signed in anonymously) can add a score, and only a
+      // well-formed one: three capital letters, a sensible whole-number
+      // score, and when it was played, which can't be in the future.
+      allow create: if request.auth != null
+        && isGame(game)
+        && board.matches('^[A-Za-z0-9-]{6,40}$')
+        && request.resource.data.keys().hasOnly(['initials', 'score', 'playedAt'])
+        && request.resource.data.initials is string
+        && request.resource.data.initials.matches('^[A-Z]{3}$')
+        && request.resource.data.score is int
+        && request.resource.data.score > 0
+        && request.resource.data.score <= 10000000
+        && request.resource.data.playedAt is timestamp
+        && request.resource.data.playedAt <= request.time;
+
+      // Scores can't be changed or removed from a game.
+      allow update, delete: if false;
+    }
+  }
+}
