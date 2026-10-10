@@ -175,7 +175,7 @@
         stars.push({ x: Math.random() * width, y: Math.random() * height, phase: Math.random() * 6.3 });
       }
       newFleet();
-      var catY = band - 8 * px;
+      var catY = band - 12 * px;
       cat = catY > fleetY + 44 * px ? { x: width / 2, y: catY, target: width / 2 } : null;
       shot = null;
       pops = [];
