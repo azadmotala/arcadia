@@ -154,12 +154,13 @@
     }
   }
 
-  //  Lights the dot for whichever slide is across the middle of the screen.
+  //  Lights the dot, and the header link, for whichever slide is across the
+  //  middle of the screen.
   function setUpDots() {
     if (!('IntersectionObserver' in window)) {
       return;
     }
-    var dots = document.querySelectorAll('.dots a');
+    var dots = document.querySelectorAll('.dots a, .nav ul a[href^="#"]');
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (!entry.isIntersecting) {
@@ -176,6 +177,16 @@
     }
   }
 
+  //  The header is see-through over the scene, and darkens once you scroll.
+  function setUpHeader() {
+    var header = document.querySelector('.site-header');
+    var update = function() {
+      header.classList.toggle('solid', window.scrollY > 24);
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  }
+
   //  If the 3D scene hasn't started after a few seconds (no WebGL, or
   //  three.js couldn't load), show the name on its own instead.
   window.setTimeout(function() {
@@ -188,4 +199,5 @@
   setUpCats();
   setUpCabinets();
   setUpDots();
+  setUpHeader();
 })();

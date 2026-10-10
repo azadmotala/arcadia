@@ -13,6 +13,7 @@
   --neon: "Tilt Neon", "Trebuchet MS", sans-serif;
   --ui: "Chakra Petch", "Trebuchet MS", sans-serif;
   --gutter: 16px;
+  --header: 60px;
 }
 
 * { box-sizing: border-box; }
@@ -93,16 +94,32 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   background: radial-gradient(ellipse 60% 55% at 0% 100%, rgba(7, 5, 26, 0.78), transparent 70%), linear-gradient(0deg, rgba(7, 5, 26, 0.9), transparent 22%);
 }
 
-.nav {
-  position: absolute;
+/* The header stays at the top of the screen on every slide. Over the scene
+   it's see-through; once you scroll it darkens so it reads over anything. */
+.site-header {
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
+  z-index: 6;
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid transparent;
+  transition: background 200ms, border-color 200ms;
+}
+
+.site-header.solid {
+  background: rgba(7, 5, 26, 0.84);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom-color: rgba(155, 107, 255, 0.25);
+}
+
+.nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(14px + env(safe-area-inset-top)) clamp(var(--gutter), 4vw, 48px) 0;
-  z-index: 2;
+  height: var(--header);
+  padding: 0 clamp(var(--gutter), 4vw, 48px);
 }
 
 .brand {
@@ -131,6 +148,11 @@ a:focus-visible, button:focus-visible, input:focus-visible {
 }
 
 .nav a:not(.brand):hover { opacity: 1; color: var(--cyan); }
+
+/* The link for the slide you're on. */
+.nav ul a[aria-current="true"] { opacity: 1; color: var(--pink); }
+
+.nav .short { display: none; }
 
 .hero-copy {
   position: absolute;
@@ -207,7 +229,7 @@ section.slide {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 48px 0 32px;
+  padding: calc(var(--header) + 16px) 0 32px;
 }
 
 .eyebrow {
@@ -267,7 +289,7 @@ h2 {
 /* The screens are sized to the window, so a slide's cabinets always fit. */
 .cabinet .screen {
   position: relative;
-  height: clamp(140px, 27vh, 260px);
+  height: clamp(140px, 24vh, 250px);
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
@@ -461,10 +483,15 @@ footer .brand { font-size: 20px; }
   .lead { font-size: 30px; }
   .sub { font-size: 16px; margin-bottom: 16px; }
   .btn { min-height: 46px; padding: 0 18px; font-size: 14px; }
-  .nav ul { display: none; }
+  :root { --header: 52px; }
+  .brand { font-size: 22px; }
+  .nav ul { gap: 18px; }
+  .nav a:not(.brand) { font-size: 13px; }
+  .nav .github, .nav .long { display: none; }
+  .nav .short { display: inline; }
   .dots { right: 6px; gap: 10px; }
   .dots a { width: 10px; height: 10px; }
-  section.slide { padding: 36px 0 24px; }
+  section.slide { padding: calc(var(--header) + 10px) 0 24px; }
   h2 { font-size: 38px; }
   .section-intro { margin-bottom: 20px; font-size: 16px; }
   .cabinets {
@@ -492,7 +519,7 @@ footer .brand { font-size: 20px; }
   .section-intro { display: none; }
   .cabinet .screen { height: clamp(110px, 21vh, 200px); }
   .cabinet .more { display: none; }
-  section.slide { padding: 28px 0 20px; }
+  section.slide { padding: calc(var(--header) + 6px) 0 20px; }
 }
 
 @media (max-width: 760px) and (max-height: 840px) {
@@ -505,7 +532,7 @@ footer .brand { font-size: 20px; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .btn, .cabinet, .dots a { transition: none; }
+  .btn, .cabinet, .dots a, .site-header { transition: none; }
   .scroll-cue { animation: none; }
 }
 

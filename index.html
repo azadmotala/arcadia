@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
-  <link href="./assets/arcadia.css?v=2.3.1" rel="stylesheet">
+  <link href="./assets/arcadia.css?v=2.4.1" rel="stylesheet">
   <!-- three.js draws the 3D scene at the top of the page. -->
   <script type="importmap">
     {
@@ -30,17 +30,22 @@
 </head>
 
 <body>
-  <header id="top" class="hero slide">
-    <canvas id="scene" aria-hidden="true"></canvas>
-    <p class="fallback-name" aria-hidden="true">Arcadia</p>
+  <!-- Pinned to the top on every slide. See-through over the scene, darker
+       once you scroll. -->
+  <header class="site-header">
     <nav class="nav" aria-label="Main">
-      <a class="brand" href="./">Arcadia</a>
+      <a class="brand" href="#top">Arcadia</a>
       <ul>
         <li><a href="#games">Games</a></li>
-        <li><a href="#boards">Family boards</a></li>
-        <li><a href="https://github.com/azadmotala/arcadia">GitHub</a></li>
+        <li><a href="#boards"><span class="long">Family boards</span><span class="short">Boards</span></a></li>
+        <li class="github"><a href="https://github.com/azadmotala/arcadia">GitHub</a></li>
       </ul>
     </nav>
+  </header>
+
+  <div id="top" class="hero slide">
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <p class="fallback-name" aria-hidden="true">Arcadia</p>
     <div class="hero-copy">
       <h1 class="sr-only">Arcadia</h1>
       <p id="invite" class="invite" hidden></p>
@@ -55,7 +60,7 @@
     <a class="scroll-cue" href="#games">Games
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
     </a>
-  </header>
+  </div>
 
   <main>
     <section id="games" class="slide" aria-labelledby="games-title">
@@ -134,8 +139,8 @@
 
   <!-- Space Cats' own sprites and cats, so the page and the game always match. -->
   <script src="games/space-cats/js/spacecats.js?v=1.0.0"></script>
-  <script src="assets/arcadia.js?v=2.3.1"></script>
-  <script type="module" src="assets/scene.js?v=2.3.1"></script>
+  <script src="assets/arcadia.js?v=2.4.1"></script>
+  <script type="module" src="assets/scene.js?v=2.4.1"></script>
 </body>
 
 </html>
