@@ -233,6 +233,53 @@
     }
   }
 
+  //  Links to a slide on this page (Pick a game, the header links, the
+  //  dots). Safari on iPhone can pull the page straight back to where it was
+  //  when a link jumps across snapping slides, so the snapping is switched
+  //  off for the jump and back on once the page has settled.
+  function setUpJumps() {
+    var root = document.documentElement;
+    var settle = null;
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      var target = link ? document.getElementById(link.getAttribute('href').slice(1)) : null;
+      if (!target) {
+        return;
+      }
+      e.preventDefault();
+      var smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var top = target.getBoundingClientRect().top + window.scrollY;
+      root.style.scrollSnapType = 'none';
+      window.scrollTo({ top: top, behavior: smooth ? 'smooth' : 'auto' });
+
+      //  Put the snapping back once the page reaches the slide. If something
+      //  stops the smooth scroll on the way, finish the jump after two
+      //  seconds instead of leaving the page between slides.
+      window.clearInterval(settle);
+      var waited = 0;
+      settle = window.setInterval(function() {
+        waited += 50;
+        var arrived = Math.abs(window.scrollY - top) < 2;
+        if (arrived || waited >= 2000) {
+          window.clearInterval(settle);
+          if (!arrived) {
+            //  Stop the stuck smooth scroll where it is, then jump.
+            window.scrollTo(0, window.scrollY);
+            window.scrollTo(0, top);
+          }
+          root.style.scrollSnapType = '';
+          //  A slide taller than the screen can snap to its bottom edge when
+          //  the snapping comes back, so settle on its top.
+          window.requestAnimationFrame(function() {
+            if (Math.abs(window.scrollY - top) >= 2) {
+              window.scrollTo(0, top);
+            }
+          });
+        }
+      }, 50);
+    });
+  }
+
   //  The header is see-through over the scene, and darkens once you scroll.
   function setUpHeader() {
     var header = document.querySelector('.site-header');
@@ -256,4 +303,5 @@
   setUpCabinets();
   setUpDots();
   setUpHeader();
+  setUpJumps();
 })();

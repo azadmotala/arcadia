@@ -19,10 +19,10 @@
 * { box-sizing: border-box; }
 
 /* The page moves like a slide show: each scroll snaps to the next full
-   screen, the scene, the games, then the family boards. */
+   screen, the scene, the games, then the family boards. Links between
+   slides glide there through arcadia.js, which works round Safari. */
 html {
   background: var(--bg);
-  scroll-behavior: smooth;
   scroll-snap-type: y mandatory;
 }
 
@@ -505,7 +505,9 @@ footer .brand { font-size: 20px; }
   .cabinet .screen { height: clamp(130px, 25vh, 220px); }
   .swipe-hint { display: block; margin: 8px 0 0; font-size: 14px; color: var(--muted); }
   .boards { grid-template-columns: minmax(0, 1fr); gap: 22px; }
-  .steps li { padding: 0 0 14px 52px; font-size: 16px; }
+  #boards .section-intro { display: none; }
+  .steps li { padding: 0 0 12px 52px; font-size: 15px; }
+  footer { margin-top: 18px; padding-top: 12px; font-size: 13px; }
   .steps li::before { width: 38px; height: 38px; font-size: 22px; top: -4px; }
   .panel { padding: 18px; }
 }
@@ -527,7 +529,6 @@ footer .brand { font-size: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   .btn, .cabinet, .dots a, .site-header { transition: none; }
   .scroll-cue { animation: none; }
 }
