@@ -308,6 +308,11 @@ function Game() {
   //  Called whenever the state changes, so the page can update its buttons.
   this.onStateChange = null;
 
+  //  Where the mouse is over the canvas, in game pixels (null if it isn't,
+  //  or on touch screens), and what clickable thing it's over.
+  this.pointer = null;
+  this.hovered = null;
+
   //  The page to go back to from the start screen on touch screens, if any.
   this.homeUrl = null;
 
@@ -456,6 +461,7 @@ function GameLoop(game) {
     if (currentState.update) {
       currentState.update(game, dt);
     }
+    game.updateCursor();
     if (currentState.draw) {
       currentState.draw(game, dt, ctx);
     }
@@ -680,6 +686,26 @@ Game.prototype.toGamePoint = function(clientX, clientY) {
   };
 };
 
+//  The mouse moving over the canvas, on a computer.
+Game.prototype.mousemove = function(e) {
+  if (!this.touchMode) {
+    this.pointer = this.toGamePoint(e.clientX, e.clientY);
+  }
+};
+
+//  On a computer, the pointer turns into a hand over anything on the canvas
+//  that can be clicked, like the cats on the start screen and the
+//  leaderboard's switch, and the screen lights that thing up. Checked every
+//  frame, so it stays right when the screen changes under a still mouse.
+Game.prototype.updateCursor = function() {
+  var state = this.currentState();
+  this.hovered = this.pointer && state && state.hoverTarget ? state.hoverTarget(this, this.pointer) : null;
+  var cursor = this.hovered ? 'pointer' : '';
+  if (this.gameCanvas.style.cursor !== cursor) {
+    this.gameCanvas.style.cursor = cursor;
+  }
+};
+
 Game.prototype.touchmove = function(e) {
   for (var i = 0; i < e.changedTouches.length; i++) {
     var touch = e.changedTouches[i];
@@ -792,20 +818,22 @@ function hasHomeLink(game) {
   return !!(game.homeUrl && game.touchMode);
 }
 
-//  Draws the five cats in a row, each with its name, centred on y.
+//  Draws the five cats in a row, each with its name, centred on y. On a
+//  computer, a cat the pointer is over gets a faint box.
 function drawCatPicker(game, ctx, y) {
   var width = CAT_FACES.plain[0].length * PICKER_PIXEL_SIZE;
   var height = CAT_FACES.plain.length * PICKER_PIXEL_SIZE;
+  var hovered = game.hovered && typeof game.hovered.cat === 'number' ? game.hovered.cat : -1;
   ctx.imageSmoothingEnabled = false;
   for (var i = 0; i < CATS.length; i++) {
     var catX = pickerCatX(game, i);
     ctx.drawImage(game.catSprites[i], catX - width / 2, y - height / 2 - 6, width, height);
     var chosen = i === game.chosenCat;
     ctx.font = "12px Arial";
-    ctx.fillStyle = chosen ? CATS[i].colour : '#888888';
+    ctx.fillStyle = chosen ? CATS[i].colour : (i === hovered ? '#dddddd' : '#888888');
     ctx.fillText(CATS[i].name, catX, y + 16);
-    if (chosen) {
-      ctx.strokeStyle = CATS[i].colour;
+    if (chosen || i === hovered) {
+      ctx.strokeStyle = chosen ? CATS[i].colour : 'rgba(255, 255, 255, 0.35)';
       ctx.lineWidth = 1;
       ctx.strokeRect(catX - PICKER_SPACING / 2 + 4, y - 26, PICKER_SPACING - 8, 52);
     }
@@ -834,16 +862,36 @@ WelcomeState.prototype.tap = function(game, point) {
   if (tapBoardSwitch(game, point)) {
     return true;
   }
+  var cat = this.catAt(game, point);
+  if (cat !== null) {
+    game.chooseCat(cat);
+    return true;
+  }
+  return false;
+};
+
+//  Which cat on the start screen a point is on, or null.
+WelcomeState.prototype.catAt = function(game, point) {
   if (Math.abs(point.y - this.catsY) > 30) {
-    return false;
+    return null;
   }
   for (var i = 0; i < CATS.length; i++) {
     if (Math.abs(point.x - pickerCatX(game, i)) <= PICKER_SPACING / 2) {
-      game.chooseCat(i);
-      return true;
+      return i;
     }
   }
-  return false;
+  return null;
+};
+
+//  What the pointer is over on the start screen that can be clicked: a cat
+//  or the leaderboard's switch (see Game.updateCursor).
+WelcomeState.prototype.hoverTarget = function(game, point) {
+  var view = boardSwitchAt(game, point);
+  if (view) {
+    return { view: view };
+  }
+  var cat = this.catAt(game, point);
+  return cat === null ? null : { cat: cat };
 };
 
 function GameOverState() {
@@ -891,6 +939,11 @@ GameOverState.prototype.tap = function(game, point) {
   return tapBoardSwitch(game, point);
 };
 
+GameOverState.prototype.hoverTarget = function(game, point) {
+  var view = boardSwitchAt(game, point);
+  return view ? { view: view } : null;
+};
+
 //  Whether this device has a leaderboard to show (see js/leaderboard.js).
 function hasLeaderboard(game) {
   return !!(game.leaderboard && game.leaderboard.board());
@@ -908,7 +961,7 @@ function drawLeaderboard(game, ctx, y) {
   var entries = board.top(weekly ? 'week' : 'all');
   var champion = weekly ? board.champion() : null;
   var x = game.width / 2;
-  var rowsY = y + 40;
+  var rowsY = y + 42;
   var footerY = rowsY + Math.max(entries.length, 1) * 17 + 3;
   ctx.textAlign = "center";
   ctx.font = "14px Arial";
@@ -961,39 +1014,75 @@ var BOARD_VIEWS = [
   { view: 'week', label: "This week" },
   { view: 'all', label: "All time" }
 ];
-var BOARD_SWITCH_GAP = 24;
+var BOARD_SWITCH_PADDING = 12;
+var BOARD_SWITCH_HEIGHT = 20;
 
 //  Draws the switch between this week's top 10 and the all-time one,
-//  centred on y, with a line under the one showing. Remembers where it is,
-//  so a tap can tell which was picked.
+//  centred on y: two halves in a rounded outline, like the buttons, with
+//  the one showing filled in. On a computer, the other half lights up when
+//  the pointer is over it. Remembers where it is, so a tap can tell which
+//  half was picked.
 function drawBoardSwitch(game, ctx, y, weekly) {
   var x = game.width / 2;
   ctx.font = "13px Arial";
-  ctx.textAlign = "left";
-  var widths = BOARD_VIEWS.map(function(option) { return ctx.measureText(option.label).width; });
-  var left = x - (widths[0] + BOARD_SWITCH_GAP + widths[1]) / 2;
-  for (var i = 0; i < BOARD_VIEWS.length; i++) {
-    var chosen = (BOARD_VIEWS[i].view === 'week') === weekly;
-    ctx.fillStyle = chosen ? '#ffffff' : '#888888';
-    ctx.fillText(BOARD_VIEWS[i].label, left, y);
-    if (chosen) {
-      ctx.fillRect(left, y + 9, widths[i], 1);
-    }
-    left += widths[i] + BOARD_SWITCH_GAP;
-  }
+  var widths = BOARD_VIEWS.map(function(option) { return ctx.measureText(option.label).width + 2 * BOARD_SWITCH_PADDING; });
+  var left = x - (widths[0] + widths[1]) / 2;
+  var top = y - BOARD_SWITCH_HEIGHT / 2;
+  var radius = BOARD_SWITCH_HEIGHT / 2;
+  var hovered = game.hovered && game.hovered.view;
+  var segmentLeft = left;
   ctx.textAlign = "center";
-  game.boardSwitch = { x: x, y: y };
+  for (var i = 0; i < BOARD_VIEWS.length; i++) {
+    var view = BOARD_VIEWS[i].view;
+    var chosen = (view === 'week') === weekly;
+    if (chosen || view === hovered) {
+      ctx.fillStyle = chosen ? 'rgba(255, 255, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)';
+      roundedRect(ctx, segmentLeft, top, widths[i], BOARD_SWITCH_HEIGHT, radius);
+      ctx.fill();
+    }
+    ctx.fillStyle = chosen ? '#ffffff' : (view === hovered ? '#dddddd' : '#999999');
+    ctx.fillText(BOARD_VIEWS[i].label, segmentLeft + widths[i] / 2, y);
+    segmentLeft += widths[i];
+  }
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = 1;
+  roundedRect(ctx, left, top, widths[0] + widths[1], BOARD_SWITCH_HEIGHT, radius);
+  ctx.stroke();
+  game.boardSwitch = { left: left, middle: left + widths[0], right: left + widths[0] + widths[1], y: y };
 }
 
-//  A tap on the switch above the leaderboard shows this week's top 10 (the
-//  left half) or the all-time one (the right half). Says whether it hit.
-function tapBoardSwitch(game, point) {
-  var tapped = game.boardSwitch;
-  if (!hasLeaderboard(game) || !tapped || Math.abs(point.y - tapped.y) > 14 || Math.abs(point.x - tapped.x) > 90) {
-    return false;
+//  Traces a rectangle with rounded ends (ctx.roundRect isn't in older
+//  iPhone browsers).
+function roundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
+//  Which half of the leaderboard's switch a point is on, 'week' or 'all', or
+//  null if it's not on the switch. The area counted is a little bigger than
+//  the switch, for fingers.
+function boardSwitchAt(game, point) {
+  var drawn = game.boardSwitch;
+  if (!hasLeaderboard(game) || !drawn || Math.abs(point.y - drawn.y) > 16 ||
+    point.x < drawn.left - 10 || point.x > drawn.right + 10) {
+    return null;
   }
-  game.boardView = point.x < tapped.x ? 'week' : 'all';
-  return true;
+  return point.x < drawn.middle ? 'week' : 'all';
+}
+
+//  A tap on the switch above the leaderboard shows this week's top 10 or
+//  the all-time one. Says whether it hit.
+function tapBoardSwitch(game, point) {
+  var view = boardSwitchAt(game, point);
+  if (view) {
+    game.boardView = view;
+  }
+  return !!view;
 }
 
 //  A little gold crown for last week's winner, centred on x, y.

@@ -8,9 +8,9 @@
   <!-- The ./ stops Vite's build reading these as package names. The ?v=
        matches the version in package.json: change both with each release,
        so browsers load that release's files rather than older copies. -->
-  <link href="./css/core.css?v=1.3.0" type="text/css" rel="stylesheet">
-  <link href="./css/typeography.css?v=1.3.0" type="text/css" rel="stylesheet">
-  <link href="./css/style.css?v=1.3.0" rel="stylesheet" type="text/css" />
+  <link href="./css/core.css?v=1.3.1" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.3.1" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.3.1" rel="stylesheet" type="text/css" />
   <!-- A cat in the browser tab, and on the home screen when the game is
        added to a phone. The game redraws the tab's cat as the one you play
        as. The manifest gives Android its icons and name. -->
@@ -45,9 +45,9 @@
     </div>
   </div>
 
-  <script src="js/starfield.js?v=1.3.0"></script>
-  <script src="js/spacecats.js?v=1.3.0"></script>
-  <script src="js/leaderboard.js?v=1.3.0"></script>
+  <script src="js/starfield.js?v=1.3.1"></script>
+  <script src="js/spacecats.js?v=1.3.1"></script>
+  <script src="js/leaderboard.js?v=1.3.1"></script>
   <script>
     //  Create the starfield.
     var container = document.getElementById('starfield');
@@ -131,9 +131,17 @@
 
     });
 
-    //  Clicking a cat on the start screen picks it.
+    //  Clicking a cat on the start screen picks it. On a computer, the
+    //  pointer turns into a hand over anything on the canvas that can be
+    //  clicked.
     canvas.addEventListener('click', function (e) {
       game.click(e);
+    });
+    canvas.addEventListener('mousemove', function (e) {
+      game.mousemove(e);
+    });
+    canvas.addEventListener('mouseleave', function () {
+      game.pointer = null;
     });
     window.addEventListener("keyup", function keydown(e) {
       if (initialsOpen()) return;
