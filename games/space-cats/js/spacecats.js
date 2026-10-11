@@ -321,6 +321,9 @@ function Game() {
   this.highScore = loadHighScore();
   this.highScoreAtStart = this.highScore;
 
+  //  On a family board, this device's best this week when the game started.
+  this.weekBestAtStart = 0;
+
   //  The cat you play as, how many cats this game has lost and how many
   //  bonus cats it has brought in. lives is how many cats are left to play,
   //  counting the one playing now.
@@ -586,6 +589,7 @@ Game.prototype.newGame = function() {
   this.catsLost = 0;
   this.bonusCats = 0;
   this.highScoreAtStart = this.highScore;
+  this.weekBestAtStart = hasLeaderboard(this) ? this.leaderboard.weekBest() : 0;
   this.message = null;
   this.messageTime = 0;
   this.moveToState(new LevelIntroState(1));
@@ -1633,14 +1637,17 @@ PlayState.prototype.draw = function(game, dt, ctx) {
   var textYpos = game.gameBounds.bottom + ((game.height - game.gameBounds.bottom) / 2) + 14 / 2;
   ctx.font = "14px Arial";
   ctx.fillStyle = '#ffffff';
-  //  The level on the left, the score in the middle and the high score on
-  //  the right, so the three never overlap, even with six-figure scores.
+  //  The level on the left, the score in the middle and the best on the
+  //  right, so the three never overlap, even with six-figure scores. On a
+  //  family board the best is this device's best this week, to match the
+  //  weekly top 10, and it goes up with the score once that passes it.
   ctx.textAlign = "left";
   ctx.fillText("Level: " + game.level, game.gameBounds.left, textYpos);
   ctx.textAlign = "center";
   ctx.fillText("Score: " + game.score, game.width / 2, textYpos);
   ctx.textAlign = "right";
-  ctx.fillText("High score: " + game.highScore, game.gameBounds.right, textYpos);
+  ctx.fillText(hasLeaderboard(game) ? "Best this week: " + Math.max(game.weekBestAtStart, game.score) : "High score: " + game.highScore,
+    game.gameBounds.right, textYpos);
 
   //  A cat joining or floating home, across the middle.
   if (game.message && game.messageTime > 0) {

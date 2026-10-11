@@ -62,7 +62,7 @@ The start screen shows which version you're playing. If you think you're on an o
 - If the fleet reaches the bottom or runs into your cat, the game ends right there.
 - Mice are worth 40 points, rat knights 20 and bats 10. Clear a wave and you get a bonus of 50 × that level.
 - The fish is usually worth 100, often 200, and now and then 300 or 500. It comes every 15 to 30 seconds, but not once the fleet is down to its last 7.
-- Your high score is saved in your browser on that device, the moment you beat it. It shows during play, on the start screen and when the game ends. On a family board, the end of a game compares it with your best this week instead, to match the weekly top 10: **New best this week!**, or what your best this week is.
+- Your high score is saved in your browser on that device, the moment you beat it. It shows during play, on the start screen and when the game ends. On a family board, the game shows your best this week instead, to match the weekly top 10: as **Best this week** during play, rising with your score once you pass it, and when a game ends as **New best this week!** or what your best this week is.
 
 ### Family leaderboard
 
