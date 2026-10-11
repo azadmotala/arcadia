@@ -75,6 +75,7 @@ The board's name heads it on the start screen and when a game ends. A board made
 - When a score makes this week's top 10, you're asked for your initials: three letters. The last ones used on that device are filled in, so on a shared computer type over them.
 - The first time a device opens a board, it offers its best score from this week.
 - No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way. If it can't get through within 3 days of the week ending, it's dropped.
+- When a game ends, **Share** sends how it went to the family chat, like "Friday night crew · Space Cats · 2nd this week with 3870, 340 behind DAD", with a link straight to the game on your board. Phones open their share sheet; on a computer it's copied, ready to paste. A score that isn't on this week's board is shared as just the points and the level.
 - Need the link again? Any device that's on the board shows it on the Family boards slide of the Arcadia home page, with a Copy button, and Share on devices that can share. [Arcadia's README](../../README.md#family-boards) has more on boards.
 
 ### It gets harder
@@ -146,7 +147,7 @@ games/space-cats/
 
 ## Credits
 
-Space Cats is based on [spaceinvaders](https://github.com/dwmkerr/spaceinvaders) by Dave Kerr, which supplies the game engine, the starfield and the core gameplay. This version adds the cats and picking which one you play as, bonus cats that join as you score, a fleet of mice, rat knights and bats drawn in code with their marching poses and points, the fish, the moon rocks, sounds made in code, the speed-up, a saved high score, a family leaderboard, an option to give every wave a new colour, Pause and Mute buttons, and touch controls for phones and tablets.
+Space Cats is based on [spaceinvaders](https://github.com/dwmkerr/spaceinvaders) by Dave Kerr, which supplies the game engine, the starfield and the core gameplay. This version adds the cats and picking which one you play as, bonus cats that join as you score, a fleet of mice, rat knights and bats drawn in code with their marching poses and points, the fish, the moon rocks, sounds made in code, the speed-up, a saved high score, a family leaderboard, an option to give every wave a new colour, Pause, Mute and Share buttons, and touch controls for phones and tablets.
 
 The cats are named after ours.
 

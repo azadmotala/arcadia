@@ -54,7 +54,7 @@ A board is a private code that sits at the end of a link, like `https://azadmota
 2. Send the link to the family or your friends.
 3. Everyone who opens it is on the board. Their device remembers it, and their scores in each game go on that game's weekly top 10.
 
-Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away.
+Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away. When a game ends, Share sends the result to the family chat, with a link back to the board.
 
 A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
 

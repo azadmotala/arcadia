@@ -37,7 +37,7 @@ html {
 	color: #999999;
 }
 
-/* Pause, colours and mute buttons: a row under the game on desktop. */
+/* Share, pause, colours and mute buttons: a row under the game on desktop. */
 #buttons {
 	display: flex;
 	justify-content: center;
@@ -180,10 +180,16 @@ html {
 	align-items: flex-end;
 }
 
-/* On touch screens Pause keeps its place when hidden, so nothing moves. */
+/* On touch screens Pause keeps its place when hidden, so nothing moves.
+   Share takes that place once a game is over. */
 .touch #buttons button[hidden] {
 	display: block;
 	visibility: hidden;
+}
+
+.touch #buttons #shareButton[hidden],
+.touch #buttons #shareButton:not([hidden]) + #pauseButton {
+	display: none;
 }
 
 /* Narrow phones: smaller buttons so all three fit across the top. */

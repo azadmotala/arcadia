@@ -354,6 +354,32 @@ var Leaderboard = (function() {
     return list.slice(0, SIZE);
   }
 
+  //  Where a score stands on this week's board, for sharing: its place, the
+  //  nearest other player above it and by how much, or at the top, the
+  //  nearest one below. Null if it isn't in this week's top 10.
+  function standing(id) {
+    var list = top('week');
+    var place = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) {
+        place = i;
+      }
+    }
+    if (place < 0) {
+      return null;
+    }
+    var entry = list[place];
+    var nearest = function(step) {
+      for (var j = place + step; j >= 0 && j < list.length; j += step) {
+        if (list[j].initials !== entry.initials) {
+          return { initials: list[j].initials, by: Math.abs(list[j].score - entry.score) };
+        }
+      }
+      return null;
+    };
+    return { rank: place + 1, behind: nearest(-1), ahead: place === 0 ? nearest(1) : null };
+  }
+
   //  Last week's winner, or null if nobody played last week (or the board
   //  hasn't been fetched since).
   function champion() {
@@ -433,6 +459,7 @@ var Leaderboard = (function() {
     status: function() { return status; },
     size: SIZE,
     top: top,
+    standing: standing,
     champion: champion,
     qualifies: qualifies,
     submit: submit,
