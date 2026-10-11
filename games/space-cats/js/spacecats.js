@@ -1088,17 +1088,20 @@ function hasLeaderboard(game) {
 }
 
 //  Draws the leaderboard from y down: the board's name, a switch between
-//  this week's top 10 and the all-time one, each player's best, and under
-//  them who won last week. The player who just played is picked out,
+//  today's challenge's top 10, this week's and the all-time one, each
+//  player's best, and under them who won last week (or on Today, who won
+//  yesterday's challenge). The player who just played is picked out,
 //  scores from this device that are still waiting to go up are grey, and
-//  last week's winner has a crown if they're on this week's board too. It
-//  says if the board couldn't be reached.
+//  last week's winner has a crown if they're on this week's board too, as
+//  yesterday's winner has a star on today's. It says if the board couldn't
+//  be reached.
 function drawLeaderboard(game, ctx, y) {
   var board = game.leaderboard;
   var view = game.boardView;
   var weekly = view === 'week';
   var entries = board.top(view);
-  var champion = weekly ? board.champion() : null;
+  var champion = view === 'all' ? null : board.champion(view);
+  var badge = weekly ? CROWN : STAR;
   var x = game.width / 2;
   var rowsY = y + 42;
   var footerY = rowsY + Math.max(entries.length, 1) * 17 + 3;
@@ -1116,7 +1119,7 @@ function drawLeaderboard(game, ctx, y) {
     var entry = entries[i];
     var rowY = rowsY + i * 17;
     if (champion && entry.key === champion.key) {
-      drawCrown(ctx, x - 94, rowY);
+      drawBadge(ctx, badge, x - 94, rowY);
     }
     ctx.fillStyle = entry.key === board.highlightKey ? '#ffd54f' : (entry.pending ? '#999999' : '#ffffff');
     ctx.textAlign = "right";
@@ -1131,12 +1134,12 @@ function drawLeaderboard(game, ctx, y) {
     ctx.fillStyle = '#888888';
     ctx.fillText("Leaderboard offline", x, footerY);
   } else if (champion) {
-    var text = champion.name + " won last week with " + withCommas(champion.score);
-    var width = CROWN_WIDTH + 6 + ctx.measureText(text).width;
-    drawCrown(ctx, x - width / 2 + CROWN_WIDTH / 2, footerY);
+    var text = champion.name + (weekly ? " won last week with " : " won yesterday with ") + withCommas(champion.score);
+    var width = BADGE_WIDTH + 6 + ctx.measureText(text).width;
+    drawBadge(ctx, badge, x - width / 2 + BADGE_WIDTH / 2, footerY);
     ctx.textAlign = "left";
     ctx.fillStyle = '#ffd54f';
-    ctx.fillText(text, x - width / 2 + CROWN_WIDTH + 6, footerY);
+    ctx.fillText(text, x - width / 2 + BADGE_WIDTH + 6, footerY);
   } else if (view !== 'all' && board.status() === 'online') {
     ctx.fillStyle = '#888888';
     ctx.fillText(weekly ? "Starts fresh every Monday" : "A new challenge at midnight", x, footerY);
@@ -1160,7 +1163,6 @@ function fitText(ctx, text, width) {
   return text + "…";
 }
 
-//  The two top 10s the leaderboard can show, side by side above it.
 //  The top 10s the leaderboard can show, side by side above it: today's
 //  challenge, this week's and the all-time one. Picking Today also sets up
 //  today's challenge to play.
@@ -1262,24 +1264,35 @@ function tapBoardSwitch(game, point) {
   return !!view;
 }
 
-//  A little gold crown for last week's winner, centred on x, y.
+//  Little gold badges: a crown for last week's winner and a star for the
+//  winner of yesterday's challenge. Both are the same width.
 var CROWN = [
   "X..X..X",
   "XX.X.XX",
   "XXXXXXX",
   "XXXXXXX"
 ];
-var CROWN_PIXEL_SIZE = 2;
-var CROWN_WIDTH = CROWN[0].length * CROWN_PIXEL_SIZE;
+var STAR = [
+  "...X...",
+  "..XXX..",
+  "XXXXXXX",
+  ".XXXXX.",
+  "..XXX..",
+  ".XX.XX.",
+  ".X...X."
+];
+var BADGE_PIXEL_SIZE = 2;
+var BADGE_WIDTH = CROWN[0].length * BADGE_PIXEL_SIZE;
 
-function drawCrown(ctx, x, y) {
-  var left = x - CROWN_WIDTH / 2;
-  var top = y - CROWN.length * CROWN_PIXEL_SIZE / 2 - 1;
+//  Draws a badge centred on x, y.
+function drawBadge(ctx, badge, x, y) {
+  var left = x - BADGE_WIDTH / 2;
+  var top = y - badge.length * BADGE_PIXEL_SIZE / 2 - 1;
   ctx.fillStyle = '#ffd54f';
-  for (var row = 0; row < CROWN.length; row++) {
-    for (var col = 0; col < CROWN[row].length; col++) {
-      if (CROWN[row].charAt(col) === 'X') {
-        ctx.fillRect(left + col * CROWN_PIXEL_SIZE, top + row * CROWN_PIXEL_SIZE, CROWN_PIXEL_SIZE, CROWN_PIXEL_SIZE);
+  for (var row = 0; row < badge.length; row++) {
+    for (var col = 0; col < badge[row].length; col++) {
+      if (badge[row].charAt(col) === 'X') {
+        ctx.fillRect(left + col * BADGE_PIXEL_SIZE, top + row * BADGE_PIXEL_SIZE, BADGE_PIXEL_SIZE, BADGE_PIXEL_SIZE);
       }
     }
   }

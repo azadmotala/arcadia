@@ -9,7 +9,8 @@
   Each board has its own players, by first name or nickname, shared by
   every game and device on it. The top 10s show each player once, with
   their best: this week's, which starts fresh every week and crowns last
-  week's winner, the all-time one, and today's, for the day's challenge.
+  week's winner, the all-time one, and today's, for the day's challenge,
+  which gives yesterday's winner a star.
 
   The game never depends on it. A score that makes the board is saved on
   the device first and uploaded when the board can be reached, so playing
@@ -170,8 +171,9 @@ var Leaderboard = (function() {
   var board = findBoard();
 
   //  The board as last fetched: this week's top 10, last week's winner, the
-  //  all-time top 10 and the board's players. The weekly ones say which
-  //  week they're for, so they can be left out once that week is over.
+  //  all-time top 10, the board's players, today's challenge's top 10 and
+  //  yesterday's winner. The weekly and daily ones say which week or day
+  //  they're for, so they can be left out once it's over.
   //  A row in a top 10 is one player's best: { key, player, name, score,
   //  playedAt }, where key is 'p:' and the player's id, or for scores from
   //  before players, 'i:' and their initials (and name is the initials).
@@ -341,8 +343,8 @@ var Leaderboard = (function() {
   }
 
   //  This week's top 10, last week's winner, the all-time top 10, today's
-  //  challenge's top 10 and the players, with the scores from before players
-  //  mixed in.
+  //  challenge's top 10, yesterday's winner and the players, with the scores
+  //  from before players mixed in.
   function fetchLists() {
     var week = thisWeek();
     var day = today();
@@ -351,14 +353,16 @@ var Leaderboard = (function() {
       fetchBests(week - 1, 1), fetchInitials(week - 1, 1),
       fetchBests(null, SIZE), fetchInitials(null, SIZE),
       fetchPlayers(),
-      fetchBests(null, SIZE, gamePath(board) + '/days/' + day)
+      fetchBests(null, SIZE, gamePath(board) + '/days/' + day),
+      fetchBests(null, 1, gamePath(board) + '/days/' + (day - 1))
     ]).then(function(found) {
       return {
         week: { week: week, rows: ranked(found[0].concat(found[1])) },
         champion: { week: week - 1, row: ranked(found[2].concat(found[3]))[0] || null },
         all: ranked(found[4].concat(found[5])),
         players: found[6],
-        today: { day: day, rows: found[7] }
+        today: { day: day, rows: found[7] },
+        yesterday: { day: day - 1, row: found[8][0] || null }
       };
     });
   }
@@ -655,9 +659,14 @@ var Leaderboard = (function() {
     return null;
   }
 
-  //  Last week's winner, or null if nobody played last week (or the board
-  //  hasn't been fetched since).
-  function champion() {
+  //  Last week's winner, or with 'today', the winner of yesterday's
+  //  challenge. Null if nobody played then (or the board hasn't been
+  //  fetched since).
+  function champion(view) {
+    if (view === 'today') {
+      var starred = lists.yesterday;
+      return starred && starred.day === today() - 1 ? starred.row : null;
+    }
     var crowned = lists.champion;
     return crowned && crowned.week === thisWeek() - 1 ? crowned.row : null;
   }

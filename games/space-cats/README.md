@@ -87,7 +87,7 @@ The board's name heads it on the start screen and when a game ends. A board made
 
 Every day there's a new challenge: three waves, the same for everyone, played as the day's cat with that cat's twist. Pick **Today** on the board's switch (or **Today's challenge** without a board) and start.
 
-<img src="../../docs/daily.png" alt="The start screen on today's challenge: Kaida picked and the other cats dimmed, Today: Kaida's fish frenzy. Three waves. A fish every few seconds. Press Space to start, and the Friday night crew's Today board with Zoe, Dad, Gran, Mum and Leo, and A new challenge at midnight" width="360">
+<img src="../../docs/daily.png" alt="The start screen on today's challenge: Kaida picked and the other cats dimmed, Today: Kaida's fish frenzy. Three waves. A fish every few seconds. Press Space to start, and the Friday night crew's Today board with Zoe, Dad, Gran, Mum and Leo, a star beside Gran, and Gran won yesterday with 4,120" width="360">
 
 | Cat | Twist |
 |---|---|
@@ -101,6 +101,7 @@ Every day there's a new challenge: three waves, the same for everyone, played as
 - The bombs, the fish (when they come, which side, what they're worth) and the holes blasted in the moon rocks follow a pattern set by the date, so everyone faces the same run that day.
 - Clear all three waves and each cat you still have is worth 500. Run out of cats and the challenge ends where you got to.
 - Play as often as you like: the **Today** board shows each player's best of the day. Today's challenge doesn't count towards This week or All time, or the device's high score. During play and at the end it shows your best today.
+- Yesterday's winner gets a star. It's under the **Today** board, with their score, and if they've played today too, their star sits beside them.
 - Sharing after the challenge says where you came today, and its link opens straight on today's challenge.
 - The twists are in `DAILY_TWISTS` in `js/spacecats.js`, in the same order as the cats.
 

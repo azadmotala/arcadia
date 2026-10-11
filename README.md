@@ -58,7 +58,7 @@ When a score makes the board, the game asks who played. Each board has its own p
 
 Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away. When a game ends, Share sends the result to the family chat, with a link back to the board.
 
-Space Cats also has a new challenge every day, the same three waves for everyone, played as the day's cat with its twist, with its own **Today** top 10 ([Space Cats' README](games/space-cats/README.md#todays-challenge) has the details).
+Space Cats also has a new challenge every day, the same three waves for everyone, played as the day's cat with its twist, with its own **Today** top 10 and a star for yesterday's winner ([Space Cats' README](games/space-cats/README.md#todays-challenge) has the details).
 
 A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
 
