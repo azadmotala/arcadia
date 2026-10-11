@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
-  <link href="./assets/arcadia.css?v=2.7.1" rel="stylesheet">
+  <link href="./assets/arcadia.css?v=2.8.0" rel="stylesheet">
   <!-- three.js draws the 3D scene at the top of the page. -->
   <script type="importmap">
     {
@@ -101,14 +101,29 @@
           <li><strong>Send the link.</strong> Drop it in the family WhatsApp group, or text it to your friends.</li>
           <li><strong>Play.</strong> Make the week's top 10 and your name goes up. New week every Monday.</li>
         </ol>
+        <div id="boardCard" class="panel board-card" hidden>
+          <h3 id="cardName" class="card-name"></h3>
+          <p id="cardWeek" class="card-label"></p>
+          <div class="card-game">
+            <img src="assets/space-cats.png" width="56" height="56" alt="">
+            <div class="card-game-text">
+              <p class="card-game-name">Space Cats</p>
+              <p id="cardChampion" class="card-champion"></p>
+            </div>
+            <a class="btn primary play-link" href="games/space-cats/">Play</a>
+          </div>
+          <p class="card-label">This week</p>
+          <ol id="cardRows" class="card-rows"></ol>
+          <p id="cardNote" class="card-note" role="status"></p>
+        </div>
         <div class="panel">
           <div id="current" class="current" hidden>
+            <h3 id="inviteTitle" class="invite-title">Invite your family</h3>
             <p id="currentMessage"></p>
             <p class="link-box" id="boardLink"></p>
             <div class="actions">
               <button id="copyLink" class="btn" type="button">Copy link</button>
               <button id="shareLink" class="btn" type="button" hidden>Share</button>
-              <a class="btn primary play-link" href="games/space-cats/">Play Space Cats</a>
             </div>
             <p id="copied" class="status" role="status"></p>
             <button id="newBoard" class="text-btn" type="button" aria-controls="makeBoard" aria-expanded="false">Make a different board</button>
@@ -118,7 +133,7 @@
             <input id="boardName" type="text" maxlength="30" autocomplete="off" placeholder="The Friday night crew">
             <button class="btn primary" type="submit" id="makeButton">Make our board</button>
           </form>
-          <p class="note">Anyone with the link can see the board and add scores to it, so keep it to people you know. This device remembers the board once you've made or opened it.</p>
+          <p class="note">Anyone with the link can see the board and add scores to it, so keep it to people you know.</p>
         </div>
       </div>
       <footer>
@@ -136,9 +151,10 @@
   </ul>
 
   <!-- Space Cats' own sprites and cats, so the page and the game always match. -->
-  <script src="games/space-cats/js/spacecats.js?v=1.4.0"></script>
-  <script src="assets/arcadia.js?v=2.7.1"></script>
-  <script type="module" src="assets/scene.js?v=2.7.1"></script>
+  <script src="games/space-cats/js/spacecats.js?v=1.4.1"></script>
+  <script src="games/space-cats/js/leaderboard.js?v=1.4.1"></script>
+  <script src="assets/arcadia.js?v=2.8.0"></script>
+  <script type="module" src="assets/scene.js?v=2.8.0"></script>
 </body>
 
 </html>

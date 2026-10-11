@@ -60,7 +60,9 @@ Every board starts again at midnight on Monday, South African time. Each game sh
 
 A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
 
-Any device that's on a board can send the link again. The Family boards slide says which board the device is on, with the link, a Copy button, a Share button on devices that can share, and a way into the game. Making a different board is tucked behind a button underneath.
+On a device that's on a board, the Family boards slide shows the board as a live card: its name, which week of its championship this is (week 1 is the week of its first score), last week's champion with a crown, and this week's top players, with a Play button. Phones show the top 3, so the slide fits one screen; taller phones and computers show the top 5.
+
+Any device that's on a board can send the link again: beside the card (below it on phones) is the link, a Copy button, and a Share button on devices that can share. Making a different board is tucked behind a button underneath.
 
 Lost the link? Any device that's still on the board has it on the Family boards slide. As the owner of the Firebase project, you can also see every board's code in the [Firestore data page](https://console.firebase.google.com/project/arcadia-63980/firestore/databases/-default-/data), under **boards**. Nobody else can look a board up without its code.
 
@@ -106,6 +108,7 @@ arcadia/
 ## How the home page works
 
 - **The scene.** `assets/scene.js` loads [three.js](https://threejs.org) 0.160.0 from unpkg, through the import map in `index.html`, and adds a glow on top. Its creatures and cats come from Space Cats' own script, `games/space-cats/js/spacecats.js`, which the page loads first. Change a cat there and the home page follows.
+- **The board card.** The home page also loads Space Cats' `js/leaderboard.js`, the same code the game uses, so the card shows exactly what the game's board does, including scores from this device still waiting to go up. It shows the board as last seen straight away, then fetches the latest, and again when someone comes back to the page.
 - **The fonts.** Headings and the sign use [Tilt Neon](https://fonts.google.com/specimen/Tilt+Neon), and the rest uses [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch), both from Google Fonts.
 - **The slides.** They snap with CSS scroll snapping. Safari on iPhone can pull the page straight back when a link jumps across snapping slides, so `assets/arcadia.js` handles links to the page's own slides itself. It switches snapping off for the jump, glides there, and switches it back on once it arrives, finishing the jump itself if the glide stalls.
 - **What a device remembers.** The board code is kept in the browser as `arcadia.board`, shared by the home page and every game. Each game keeps its own things, such as Space Cats' high score, under its own name, like `arcadia.space-cats.highScore`.

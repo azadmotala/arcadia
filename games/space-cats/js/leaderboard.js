@@ -67,7 +67,8 @@ var Leaderboard = (function() {
     pending: 'arcadia.' + GAME + '.pendingScores',
     cache: 'arcadia.' + GAME + '.leaderboard',
     offered: 'arcadia.' + GAME + '.offeredHighScore',
-    weekBest: 'arcadia.' + GAME + '.weekBest'
+    weekBest: 'arcadia.' + GAME + '.weekBest',
+    firstWeek: 'arcadia.' + GAME + '.firstWeek'
   };
 
   //  Storage can be blocked (private browsing, for example), so reads and
@@ -530,14 +531,21 @@ var Leaderboard = (function() {
     if (!force && Date.now() - lastRefresh < REFRESH_MS) {
       return Promise.resolve();
     }
+    //  If the board changes part way (see useBoard), what was fetched is for
+    //  the old one, so it's left out, and the new one is fetched after.
+    var code = board;
     refreshing = flush().catch(function() {
       //  Anything that couldn't go up waits for next time.
     }).then(fetchLists).then(function(fetched) {
-      lists = fetched;
-      status = 'online';
-      save(KEYS.cache, { board: board, lists: fetched });
+      if (board === code) {
+        lists = fetched;
+        status = 'online';
+        save(KEYS.cache, { board: board, lists: fetched });
+      }
     }, function() {
-      status = 'offline';
+      if (board === code) {
+        status = 'offline';
+      }
     }).then(function() {
       refreshing = null;
       lastRefresh = Date.now();
@@ -702,6 +710,51 @@ var Leaderboard = (function() {
     return best && best.week === thisWeek() ? best.score : 0;
   }
 
+  //  Which week of the board's championship this is: week 1 is the week of
+  //  its first score. Found once and remembered, since it never changes.
+  //  Resolves to 1 if the board has no scores yet.
+  function fetchWeekNumber() {
+    if (!board) {
+      return Promise.resolve(null);
+    }
+    var code = board;
+    var known = load(KEYS.firstWeek, {});
+    if (typeof known[code] === 'number') {
+      return Promise.resolve(thisWeek() - known[code] + 1);
+    }
+    var earliest = function(path, collection) {
+      return runQuery(path, {
+        from: [{ collectionId: collection }],
+        orderBy: [{ field: { fieldPath: 'playedAt' }, direction: 'ASCENDING' }],
+        limit: 1
+      }).then(function(docs) {
+        return docs.length ? weekOf(Date.parse(docs[0].fields.playedAt.timestampValue)) : null;
+      });
+    };
+    return Promise.all([earliest(gamePath(code), 'plays'), earliest(gamePath(code), 'scores')]).then(function(weeks) {
+      var first = weeks.filter(function(week) { return week !== null; }).sort(function(a, b) { return a - b; })[0];
+      if (first === undefined) {
+        return 1;
+      }
+      known = load(KEYS.firstWeek, {});
+      known[code] = first;
+      save(KEYS.firstWeek, known);
+      return thisWeek() - first + 1;
+    });
+  }
+
+  //  Switches to another board, as when the home page makes a new one, and
+  //  fetches it.
+  function useBoard(code) {
+    board = code;
+    cache = load(KEYS.cache, null);
+    lists = cache && cache.board === board && cache.lists && cache.lists.players ? cache.lists :
+      { week: null, champion: null, all: null, players: [] };
+    status = board ? 'loading' : 'off';
+    lastRefresh = 0;
+    return refresh(true);
+  }
+
   //  The first time a device opens a board, its best score this week is
   //  offered to it, once, if the board has loaded and the score would make it.
   function shouldOffer() {
@@ -732,6 +785,8 @@ var Leaderboard = (function() {
     addPlayer: addPlayer,
     submit: submit,
     refresh: refresh,
+    useBoard: useBoard,
+    fetchWeekNumber: fetchWeekNumber,
     played: played,
     weekBest: weekBest,
     shouldOffer: shouldOffer,

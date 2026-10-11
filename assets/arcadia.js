@@ -2,8 +2,8 @@
   arcadia.js
 
   The home page, apart from the 3D scene (see scene.js): the family board
-  maker, the cats in the Space Cats cabinet, and cabinets that lean towards
-  the pointer.
+  maker, the live card for the board this device is on, the cats in the
+  Space Cats cabinet, and cabinets that lean towards the pointer.
 */
 
 (function() {
@@ -91,19 +91,17 @@
     element.appendChild(document.createTextNode(after));
   }
 
-  //  The panel for the board this device is on: what it's called, its link
-  //  to copy or share, and a way to play on it. Once there's a board, the
-  //  form below it makes a new one instead.
+  //  The board this device is on: its live card, and the panel with its link
+  //  to copy or share. Once there's a board, the form below the link makes
+  //  a new one instead.
   function showCurrent(board, justMade) {
     document.getElementById('current').hidden = !board;
     document.getElementById('copied').textContent = '';
+    showCard(board);
     if (board) {
-      var message = document.getElementById('currentMessage');
-      if (justMade) {
-        sayBoard(message, 'Your board, ', board, ', is ready. Send this link to everyone who should be on it:');
-      } else {
-        sayBoard(message, 'This device is on ', board, '. Send this link to anyone else who should be on it:');
-      }
+      document.getElementById('inviteTitle').textContent = justMade ? 'Your board is ready' : 'Invite your family';
+      document.getElementById('currentMessage').textContent = justMade ?
+        'Send this link to everyone who should be on it.' : 'Send this link to anyone else who should be on it.';
       document.getElementById('boardLink').textContent = boardLink(board);
       document.getElementById('boardNameLabel').textContent = 'New board name';
       document.getElementById('makeButton').textContent = 'Make a new board';
@@ -117,7 +115,108 @@
     updatePlayLinks(board);
   }
 
+  //  How many of this week's top players the card shows.
+  var CARD_ROWS = 5;
+
+  //  The board's live card: its name, which week of its championship this
+  //  is, last week's champion, and this week's top players, from the same
+  //  leaderboard code the game uses (games/space-cats/js/leaderboard.js),
+  //  so it shows the same scores. It shows the board as last seen at once,
+  //  then the latest.
+  function showCard(board) {
+    var card = document.getElementById('boardCard');
+    card.hidden = !board || !window.Leaderboard;
+    if (card.hidden) {
+      return;
+    }
+    document.getElementById('cardName').textContent = boardName(board) || board;
+    document.getElementById('cardWeek').textContent = 'This week';
+    renderCard();
+    if (Leaderboard.board() !== board) {
+      Leaderboard.useBoard(board);
+    } else {
+      Leaderboard.refresh(true);
+    }
+    Leaderboard.fetchWeekNumber().then(function(week) {
+      if (week && Leaderboard.board() === board) {
+        document.getElementById('cardWeek').textContent = 'Week ' + week;
+      }
+    }, function() {
+      //  Not reachable just now; the label stays as it is.
+    });
+  }
+
+  function renderCard() {
+    var rows = Leaderboard.top('week').slice(0, CARD_ROWS);
+    var champion = Leaderboard.champion();
+    var status = Leaderboard.status();
+
+    var crowned = document.getElementById('cardChampion');
+    crowned.textContent = '';
+    if (champion) {
+      crowned.appendChild(crown());
+      crowned.appendChild(document.createTextNode(champion.name + ' won last week with ' + withCommas(champion.score)));
+    } else {
+      crowned.textContent = 'Starts fresh every Monday';
+    }
+
+    var list = document.getElementById('cardRows');
+    list.textContent = '';
+    rows.forEach(function(row, i) {
+      var item = document.createElement('li');
+      item.className = row.pending ? 'waiting' : '';
+      var rank = document.createElement('span');
+      rank.className = 'card-rank';
+      rank.textContent = i + 1;
+      var name = document.createElement('span');
+      name.className = 'card-player';
+      if (champion && row.key === champion.key) {
+        name.appendChild(crown());
+      }
+      name.appendChild(document.createTextNode(row.name));
+      var score = document.createElement('span');
+      score.className = 'card-score';
+      score.textContent = withCommas(row.score);
+      item.appendChild(rank);
+      item.appendChild(name);
+      item.appendChild(score);
+      list.appendChild(item);
+    });
+
+    var note = document.getElementById('cardNote');
+    if (status === 'offline') {
+      note.textContent = "Can't reach the board just now, so this is how it last looked.";
+    } else if (!rows.length) {
+      note.textContent = status === 'loading' ? 'Loading…' : 'No scores yet this week. Be the first!';
+    } else {
+      note.textContent = '';
+    }
+  }
+
+  //  The game's little gold pixel crown, for last week's champion.
+  function crown() {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'crown');
+    svg.setAttribute('viewBox', '0 0 7 4');
+    svg.setAttribute('aria-hidden', 'true');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M0 0h1v1H0zM3 0h1v1H3zM6 0h1v1H6zM0 1h2v1H0zM3 1h1v1H3zM5 1h2v1H5zM0 2h7v2H0z');
+    svg.appendChild(path);
+    return svg;
+  }
+
   function setUpBoards() {
+    //  The card redraws whenever the board's been fetched, and fetches it
+    //  again when someone comes back to the page.
+    if (window.Leaderboard) {
+      Leaderboard.onUpdate = renderCard;
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && Leaderboard.board()) {
+          Leaderboard.refresh();
+        }
+      });
+    }
+
     var fromLink = new URLSearchParams(window.location.search).get('board');
     var board = null;
     if (fromLink && BOARD_PATTERN.test(fromLink)) {
