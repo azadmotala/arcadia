@@ -33,7 +33,7 @@ Everything in the fleet is green. Switch on random colours and every wave turns 
 
 ## How to play
 
-Play it in your browser from **[Arcadia](https://azadmotala.github.io/arcadia/)**. Nothing to install. On a phone or tablet, the game fills the screen and you steer with your thumb.
+Space Cats is the first game on **[Arcadia](https://azadmotala.github.io/arcadia/)**: pick it from the cabinets on the home page, or go straight to **[the game](https://azadmotala.github.io/arcadia/games/space-cats/)**. Nothing to install. On a phone or tablet, the game fills the screen and you steer with your thumb.
 
 To keep it on your home screen, open the game and tap Share → **Add to Home Screen** on an iPhone or iPad, or choose **Add to home screen** from Chrome's ⋮ menu on Android. It gets a green cat as its icon.
 
@@ -46,6 +46,7 @@ To keep it on your home screen, open the game and tap Share → **Add to Home Sc
 | Pause | <kbd>P</kbd> or the **Pause** button | **Pause** button, or switch to another app |
 | Sound on/off | **Mute** button | **Mute** button |
 | Fleet colours | **Random colours** button | **Random colours** button |
+| Back to Arcadia | **Back to Arcadia** link under the game | **‹ Arcadia** in the top corner of the start screen |
 
 On a computer the buttons sit under the game. On a phone or tablet they're in the top corner. The game also pauses itself when you switch to another tab or app, and goes quiet until you come back.
 
@@ -65,13 +66,16 @@ The start screen shows which version you're playing. If you think you're on an o
 
 ### Family leaderboard
 
-The game can keep a top 10 shared by a family or group of friends, on any device. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards), or put a private code of your own at the end of the link, like `https://azadmotala.github.io/arcadia/?board=yourcode`. Send the link to everyone who should be on the board. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the code can see the board or add to it.
+The game can keep a top 10 shared by a family or group of friends, on any device. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
 
-<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and a family leaderboard of three-letter initials and scores under them" width="360">
+The board's name heads the top 10 on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**.
+
+<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: a top 10 of three-letter initials and scores" width="360">
 
 - When a score makes the top 10, you're asked for your initials: three letters. The last ones used on that device are filled in, so on a shared computer type over them.
 - The first time a device opens a board, it offers the high score it already has.
 - No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way.
+- Need the link again? Any device that's on the board shows it on the Family boards slide of the Arcadia home page, with a Copy button, and Share on devices that can share. [Arcadia's README](../../README.md#family-boards) has more on boards.
 
 ### It gets harder
 
