@@ -202,6 +202,12 @@ var GAME_VERSION = (function() {
   return match ? match[1] : '';
 })();
 
+//  A score with commas between the thousands, like 18,450, the same on every
+//  device whatever its language settings.
+function withCommas(number) {
+  return String(number).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 //  The high score is kept in the browser, so it lasts between visits on the
 //  same device. Some browsers block storage, in private browsing for
 //  example; then the game still works, the best just isn't kept.
@@ -796,7 +802,7 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   if (hasBoard) {
     drawLeaderboard(game, ctx, y + 146);
   } else if (game.highScore > 0) {
-    ctx.fillText("High score: " + game.highScore, x, y + 150);
+    ctx.fillText("High score: " + withCommas(game.highScore), x, y + 150);
   }
   if (GAME_VERSION) {
     ctx.font = "12px Arial";
@@ -933,7 +939,7 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
   ctx.textAlign = "center";
   ctx.fillText("Game Over!", x, y);
   ctx.font = "16px Arial";
-  ctx.fillText("You scored " + game.score + " and got to level " + game.level, x, y + 40);
+  ctx.fillText("You scored " + withCommas(game.score) + " and got to level " + game.level, x, y + 40);
   //  On a board, the game is compared with this device's best this week, to
   //  match the weekly top 10 underneath. Without one, with its best ever.
   var weekBest = hasBoard ? game.leaderboard.weekBest() : 0;
@@ -942,9 +948,9 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
     ctx.fillText(hasBoard ? "New best this week!" : "New high score!", x, y + 66);
     ctx.fillStyle = '#ffffff';
   } else if (!hasBoard) {
-    ctx.fillText("High score: " + game.highScore, x, y + 66);
+    ctx.fillText("High score: " + withCommas(game.highScore), x, y + 66);
   } else if (weekBest > 0) {
-    ctx.fillText("Your best this week: " + weekBest, x, y + 66);
+    ctx.fillText("Your best this week: " + withCommas(weekBest), x, y + 66);
   }
   if (hasBoard) {
     drawLeaderboard(game, ctx, y + 96);
@@ -1006,14 +1012,14 @@ function drawLeaderboard(game, ctx, y) {
     ctx.textAlign = "left";
     ctx.fillText(fitText(ctx, entry.name, BOARD_NAME_WIDTH), x - 56, rowY);
     ctx.textAlign = "right";
-    ctx.fillText(entry.score, x + 80, rowY);
+    ctx.fillText(withCommas(entry.score), x + 80, rowY);
   }
   ctx.textAlign = "center";
   if (board.status() === 'offline') {
     ctx.fillStyle = '#888888';
     ctx.fillText("Leaderboard offline", x, footerY);
   } else if (champion) {
-    var text = champion.name + " won last week with " + champion.score;
+    var text = champion.name + " won last week with " + withCommas(champion.score);
     var width = CROWN_WIDTH + 6 + ctx.measureText(text).width;
     drawCrown(ctx, x - width / 2 + CROWN_WIDTH / 2, footerY);
     ctx.textAlign = "left";
@@ -1657,9 +1663,9 @@ PlayState.prototype.draw = function(game, dt, ctx) {
   ctx.textAlign = "left";
   ctx.fillText("Level: " + game.level, game.gameBounds.left, textYpos);
   ctx.textAlign = "center";
-  ctx.fillText("Score: " + game.score, game.width / 2, textYpos);
+  ctx.fillText("Score: " + withCommas(game.score), game.width / 2, textYpos);
   ctx.textAlign = "right";
-  ctx.fillText(hasLeaderboard(game) ? "Best this week: " + Math.max(game.weekBestAtStart, game.score) : "High score: " + game.highScore,
+  ctx.fillText(hasLeaderboard(game) ? "Best this week: " + withCommas(Math.max(game.weekBestAtStart, game.score)) : "High score: " + withCommas(game.highScore),
     game.gameBounds.right, textYpos);
 
   //  A cat joining or floating home, across the middle.

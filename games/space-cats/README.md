@@ -77,7 +77,7 @@ The board's name heads it on the start screen and when a game ends. A board made
 - Scores from before players were added show with their initials, one row for each set.
 - The first time a device opens a board, it offers its best score from this week.
 - No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way. If it can't get through within 3 days of the week ending, it's dropped.
-- When a game ends, **Share** sends how it went to the family chat, like "Friday night crew · Space Cats · 2nd this week with 3870, 340 behind Dad", with a link straight to the game on your board. Phones open their share sheet; on a computer it's copied, ready to paste. A score that isn't on this week's board is shared as just the points and the level.
+- When a game ends, **Share** sends how it went to the family chat, like "Friday night crew · Space Cats · 2nd this week with 3,870 (340 behind Dad)", with a link straight to the game on your board. Phones open their share sheet; on a computer it's copied, ready to paste. A score that isn't on this week's board is shared as just the points and the level.
 - Need the link again? Any device that's on the board shows it on the Family boards slide of the Arcadia home page, with a Copy button, and Share on devices that can share. [Arcadia's README](../../README.md#family-boards) has more on boards.
 
 ### It gets harder

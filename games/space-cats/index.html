@@ -8,9 +8,9 @@
   <!-- The ./ stops Vite's build reading these as package names. The ?v=
        matches the version in package.json: change both with each release,
        so browsers load that release's files rather than older copies. -->
-  <link href="./css/core.css?v=1.4.0" type="text/css" rel="stylesheet">
-  <link href="./css/typeography.css?v=1.4.0" type="text/css" rel="stylesheet">
-  <link href="./css/style.css?v=1.4.0" rel="stylesheet" type="text/css" />
+  <link href="./css/core.css?v=1.4.1" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.4.1" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.4.1" rel="stylesheet" type="text/css" />
   <!-- A cat in the browser tab, and on the home screen when the game is
        added to a phone. The game redraws the tab's cat as the one you play
        as. The manifest gives Android its icons and name. -->
@@ -48,9 +48,9 @@
     </div>
   </div>
 
-  <script src="js/starfield.js?v=1.4.0"></script>
-  <script src="js/spacecats.js?v=1.4.0"></script>
-  <script src="js/leaderboard.js?v=1.4.0"></script>
+  <script src="js/starfield.js?v=1.4.1"></script>
+  <script src="js/spacecats.js?v=1.4.1"></script>
+  <script src="js/leaderboard.js?v=1.4.1"></script>
   <script>
     //  Create the starfield.
     var container = document.getElementById('starfield');
@@ -113,7 +113,7 @@
       if (game.currentState() instanceof WelcomeState && !askingWhoPlayed() && Leaderboard.shouldOffer()) {
         var best = Leaderboard.weekBest();
         Leaderboard.markOffered();
-        askWhoPlayed('Your best this week, ' + best + ', can go on the board. Who played?', function (player) {
+        askWhoPlayed('Your best this week, ' + withCommas(best) + ', can go on the board. Who played?', function (player) {
           Leaderboard.highlightKey = Leaderboard.submit(player, best);
         });
       }
@@ -242,21 +242,21 @@
       });
     }
 
-    //  "Friday night crew · Space Cats · 2nd this week with 3870, 340 behind
-    //  Dad", for the player who just played, with their best this week. Just
+    //  "Friday night crew · Space Cats · 2nd this week with 3,870 (340 behind
+    //  Dad)", for the player who just played, with their best this week. Just
     //  the score if they aren't on this week's board.
     function resultText() {
       var parts = Leaderboard.name() ? [Leaderboard.name(), 'Space Cats'] : ['Space Cats'];
       var standing = Leaderboard.highlightKey ? Leaderboard.standing(Leaderboard.highlightKey) : null;
       if (!standing) {
-        parts.push(game.score + ' points, level ' + game.level);
+        parts.push(withCommas(game.score) + ' points, level ' + game.level);
         return parts.join(' · ');
       }
-      var line = ordinal(standing.rank) + ' this week with ' + standing.score;
+      var line = ordinal(standing.rank) + ' this week with ' + withCommas(standing.score);
       if (standing.behind) {
-        line += standing.behind.by ? ', ' + standing.behind.by + ' behind ' + standing.behind.name : ', tied with ' + standing.behind.name;
+        line += standing.behind.by ? ' (' + withCommas(standing.behind.by) + ' behind ' + standing.behind.name + ')' : ' (tied with ' + standing.behind.name + ')';
       } else if (standing.ahead) {
-        line += standing.ahead.by ? ', ' + standing.ahead.by + ' ahead of ' + standing.ahead.name : ', tied with ' + standing.ahead.name;
+        line += standing.ahead.by ? ' (' + withCommas(standing.ahead.by) + ' ahead of ' + standing.ahead.name + ')' : ' (tied with ' + standing.ahead.name + ')';
       }
       parts.push(line);
       return parts.join(' · ');
@@ -289,7 +289,7 @@
         var score = game.score;
         game.boardView = 'week';
         if (Leaderboard.qualifies(score)) {
-          askWhoPlayed(score + " makes this week's top 10! Who played?", function (player) {
+          askWhoPlayed(withCommas(score) + " makes this week's top 10! Who played?", function (player) {
             Leaderboard.highlightKey = Leaderboard.submit(player, score);
           });
         }
