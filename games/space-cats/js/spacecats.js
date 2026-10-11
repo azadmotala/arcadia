@@ -743,7 +743,7 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   //  With a leaderboard, everything moves up to make room for it.
   var hasBoard = hasLeaderboard(game);
   var x = game.width / 2;
-  var y = hasBoard ? 175 : game.height / 2 - 60;
+  var y = hasBoard ? 158 : game.height / 2 - 60;
 
   ctx.font = "30px Arial";
   ctx.fillStyle = '#ffffff';
@@ -764,7 +764,7 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
     ctx.fillText("Pick your cat with ← → or a click. Press Space to start.", x, y + 96);
   }
   if (hasBoard) {
-    drawLeaderboard(game, ctx, y + 150);
+    drawLeaderboard(game, ctx, y + 146);
   } else if (game.highScore > 0) {
     ctx.fillText("High score: " + game.highScore, x, y + 150);
   }
@@ -822,12 +822,16 @@ WelcomeState.prototype.keyDown = function(game, keyCode) {
   }
 };
 
-//  A tap or click on a cat picks it, and one on the Arcadia link goes home.
-//  Says whether it hit either.
+//  A tap or click on a cat picks it, one on the Arcadia link goes home, and
+//  one on the leaderboard's switch changes which top 10 it shows. Says
+//  whether it hit any of them.
 WelcomeState.prototype.tap = function(game, point) {
   if (hasHomeLink(game) && point.x >= HOME_LINK.x - 10 && point.x <= HOME_LINK.x + HOME_LINK.width &&
     Math.abs(point.y - HOME_LINK.y) <= HOME_LINK.height / 2) {
     window.location.href = game.homeUrl;
+    return true;
+  }
+  if (tapBoardSwitch(game, point)) {
     return true;
   }
   if (Math.abs(point.y - this.catsY) > 30) {
@@ -858,7 +862,7 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
   //  With a leaderboard, everything moves up to make room for it.
   var hasBoard = hasLeaderboard(game);
   var x = game.width / 2;
-  var y = hasBoard ? 175 : game.height / 2 - 40;
+  var y = hasBoard ? 165 : game.height / 2 - 40;
 
   ctx.font = "30px Arial";
   ctx.fillStyle = '#ffffff';
@@ -875,10 +879,16 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
     ctx.fillText("High score: " + game.highScore, x, y + 66);
   }
   if (hasBoard) {
-    drawLeaderboard(game, ctx, y + 100);
+    drawLeaderboard(game, ctx, y + 96);
   }
   ctx.font = "16px Arial";
-  ctx.fillText(game.touchMode ? "Tap to pick a cat and play again." : "Press Space to pick a cat and play again.", x, hasBoard ? y + 320 : y + 92);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(game.touchMode ? "Tap to pick a cat and play again." : "Press Space to pick a cat and play again.", x, hasBoard ? y + 328 : y + 92);
+};
+
+//  A tap or click on the leaderboard's switch changes which top 10 it shows.
+GameOverState.prototype.tap = function(game, point) {
+  return tapBoardSwitch(game, point);
 };
 
 //  Whether this device has a leaderboard to show (see js/leaderboard.js).
@@ -886,25 +896,39 @@ function hasLeaderboard(game) {
   return !!(game.leaderboard && game.leaderboard.board());
 }
 
-//  Draws the leaderboard's top 10 from y down, picking out the score just
-//  added, and says if the board couldn't be reached. Scores from this device
-//  that are still waiting to go up are shown in grey.
+//  Draws the leaderboard from y down: the board's name, a switch between
+//  this week's top 10 and the all-time one, the scores, and under them who
+//  won last week. The score just added is picked out, scores from this
+//  device that are still waiting to go up are grey, and last week's winner
+//  has a crown if they're on this week's board too. It says if the board
+//  couldn't be reached.
 function drawLeaderboard(game, ctx, y) {
   var board = game.leaderboard;
-  var entries = board.top();
+  var weekly = game.boardView !== 'all';
+  var entries = board.top(weekly ? 'week' : 'all');
+  var champion = weekly ? board.champion() : null;
   var x = game.width / 2;
+  var rowsY = y + 40;
+  var footerY = rowsY + Math.max(entries.length, 1) * 17 + 3;
   ctx.textAlign = "center";
   ctx.font = "14px Arial";
   ctx.fillStyle = '#ffd54f';
   ctx.fillText(board.name() || "Leaderboard", x, y);
+  drawBoardSwitch(game, ctx, y + 20, weekly);
   ctx.font = "13px Arial";
   if (!entries.length) {
     ctx.fillStyle = '#888888';
-    ctx.fillText(board.status() === 'loading' ? "Loading…" : "No scores yet. Be the first!", x, y + 22);
+    ctx.fillText(board.status() === 'loading' ? "Loading…" :
+      (weekly ? "No scores yet this week. Be the first!" : "No scores yet. Be the first!"), x, rowsY);
   }
+  var crowned = false;
   for (var i = 0; i < entries.length; i++) {
     var entry = entries[i];
-    var rowY = y + 22 + i * 17;
+    var rowY = rowsY + i * 17;
+    if (champion && !crowned && entry.initials === champion.initials) {
+      drawCrown(ctx, x - 74, rowY);
+      crowned = true;
+    }
     ctx.fillStyle = entry.id === board.highlightId ? '#ffd54f' : (entry.pending ? '#999999' : '#ffffff');
     ctx.textAlign = "right";
     ctx.fillText((i + 1) + ".", x - 44, rowY);
@@ -913,13 +937,86 @@ function drawLeaderboard(game, ctx, y) {
     ctx.textAlign = "right";
     ctx.fillText(entry.score, x + 56, rowY);
   }
+  ctx.textAlign = "center";
   if (board.status() === 'offline') {
-    ctx.textAlign = "center";
     ctx.fillStyle = '#888888';
-    ctx.fillText("Leaderboard offline", x, y + 22 + board.size * 17);
+    ctx.fillText("Leaderboard offline", x, footerY);
+  } else if (champion) {
+    var text = champion.initials + " won last week with " + champion.score;
+    var width = CROWN_WIDTH + 6 + ctx.measureText(text).width;
+    drawCrown(ctx, x - width / 2 + CROWN_WIDTH / 2, footerY);
+    ctx.textAlign = "left";
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillText(text, x - width / 2 + CROWN_WIDTH + 6, footerY);
+  } else if (weekly && board.status() === 'online') {
+    ctx.fillStyle = '#888888';
+    ctx.fillText("Starts afresh every Monday", x, footerY);
   }
   ctx.textAlign = "center";
   ctx.fillStyle = '#ffffff';
+}
+
+//  The two top 10s the leaderboard can show, side by side above it.
+var BOARD_VIEWS = [
+  { view: 'week', label: "This week" },
+  { view: 'all', label: "All time" }
+];
+var BOARD_SWITCH_GAP = 24;
+
+//  Draws the switch between this week's top 10 and the all-time one,
+//  centred on y, with a line under the one showing. Remembers where it is,
+//  so a tap can tell which was picked.
+function drawBoardSwitch(game, ctx, y, weekly) {
+  var x = game.width / 2;
+  ctx.font = "13px Arial";
+  ctx.textAlign = "left";
+  var widths = BOARD_VIEWS.map(function(option) { return ctx.measureText(option.label).width; });
+  var left = x - (widths[0] + BOARD_SWITCH_GAP + widths[1]) / 2;
+  for (var i = 0; i < BOARD_VIEWS.length; i++) {
+    var chosen = (BOARD_VIEWS[i].view === 'week') === weekly;
+    ctx.fillStyle = chosen ? '#ffffff' : '#888888';
+    ctx.fillText(BOARD_VIEWS[i].label, left, y);
+    if (chosen) {
+      ctx.fillRect(left, y + 9, widths[i], 1);
+    }
+    left += widths[i] + BOARD_SWITCH_GAP;
+  }
+  ctx.textAlign = "center";
+  game.boardSwitch = { x: x, y: y };
+}
+
+//  A tap on the switch above the leaderboard shows this week's top 10 (the
+//  left half) or the all-time one (the right half). Says whether it hit.
+function tapBoardSwitch(game, point) {
+  var tapped = game.boardSwitch;
+  if (!hasLeaderboard(game) || !tapped || Math.abs(point.y - tapped.y) > 14 || Math.abs(point.x - tapped.x) > 90) {
+    return false;
+  }
+  game.boardView = point.x < tapped.x ? 'week' : 'all';
+  return true;
+}
+
+//  A little gold crown for last week's winner, centred on x, y.
+var CROWN = [
+  "X..X..X",
+  "XX.X.XX",
+  "XXXXXXX",
+  "XXXXXXX"
+];
+var CROWN_PIXEL_SIZE = 2;
+var CROWN_WIDTH = CROWN[0].length * CROWN_PIXEL_SIZE;
+
+function drawCrown(ctx, x, y) {
+  var left = x - CROWN_WIDTH / 2;
+  var top = y - CROWN.length * CROWN_PIXEL_SIZE / 2 - 1;
+  ctx.fillStyle = '#ffd54f';
+  for (var row = 0; row < CROWN.length; row++) {
+    for (var col = 0; col < CROWN[row].length; col++) {
+      if (CROWN[row].charAt(col) === 'X') {
+        ctx.fillRect(left + col * CROWN_PIXEL_SIZE, top + row * CROWN_PIXEL_SIZE, CROWN_PIXEL_SIZE, CROWN_PIXEL_SIZE);
+      }
+    }
+  }
 }
 
 GameOverState.prototype.keyDown = function(game, keyCode) {

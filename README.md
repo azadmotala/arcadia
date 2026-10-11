@@ -52,9 +52,11 @@ A board is a private code that sits at the end of a link, like `https://azadmota
 
 1. Make one on the [home page](https://azadmotala.github.io/arcadia/#boards). Give it a name, and a few random letters go on the end so nobody can guess it.
 2. Send the link to the family or your friends.
-3. Everyone who opens it is on the board. Their device remembers it, and their best scores in each game go on that game's top 10.
+3. Everyone who opens it is on the board. Their device remembers it, and their scores in each game go on that game's weekly top 10.
 
-A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10. A board made without a name shows its code instead.
+Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away.
+
+A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
 
 Any device that's on a board can send the link again. The Family boards slide says which board the device is on, with the link, a Copy button, a Share button on devices that can share, and a way into the game. Making a different board is tucked behind a button underneath.
 
@@ -94,7 +96,8 @@ arcadia/
 │   └── space-cats/         Space Cats, with its own README
 ├── docs/                   Pictures for the READMEs
 ├── firestore.rules         Who can read and add leaderboard scores
-├── firebase.json           Tells the Firebase CLI where the rules are
+├── firestore.indexes.json  The index the weekly top 10 needs
+├── firebase.json           Tells the Firebase CLI where the rules and index are
 └── .firebaserc             Arcadia's Firebase project
 ```
 
@@ -112,10 +115,12 @@ Scores are kept in Firestore, in Arcadia's own Firebase project, `arcadia-63980`
 
 Each board keeps each game's scores apart, at `boards/{code}/games/{game}/scores`. The rules in [`firestore.rules`](firestore.rules) let anyone read a board they know the code of, and let a signed-in game add a well-formed score to it. Nobody can change or delete one.
 
-To publish the rules after changing them, with the [Firebase CLI](https://firebase.google.com/docs/cli):
+Each score says which week it was played in, numbered from Monday 5 January 1970, with weeks starting at midnight on Monday in South Africa (UTC+2). The rules check the week matches when the score was played, and turn away a score more than 3 days after its week has ended, so one played offline can still go up a little late. The weekly top 10 needs the index in [`firestore.indexes.json`](firestore.indexes.json). Scores from before weeks were added have no week, so they only count towards the all-time top 10.
+
+To publish the rules and the index after changing them, with the [Firebase CLI](https://firebase.google.com/docs/cli):
 
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore
 ```
 
 ### Adding a game

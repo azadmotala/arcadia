@@ -8,9 +8,9 @@
   <!-- The ./ stops Vite's build reading these as package names. The ?v=
        matches the version in package.json: change both with each release,
        so browsers load that release's files rather than older copies. -->
-  <link href="./css/core.css?v=1.1.0" type="text/css" rel="stylesheet">
-  <link href="./css/typeography.css?v=1.1.0" type="text/css" rel="stylesheet">
-  <link href="./css/style.css?v=1.1.0" rel="stylesheet" type="text/css" />
+  <link href="./css/core.css?v=1.2.0" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.2.0" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.2.0" rel="stylesheet" type="text/css" />
   <!-- A cat in the browser tab, and on the home screen when the game is
        added to a phone. The game redraws the tab's cat as the one you play
        as. The manifest gives Android its icons and name. -->
@@ -44,9 +44,9 @@
     </div>
   </div>
 
-  <script src="js/starfield.js?v=1.1.0"></script>
-  <script src="js/spacecats.js?v=1.1.0"></script>
-  <script src="js/leaderboard.js?v=1.1.0"></script>
+  <script src="js/starfield.js?v=1.2.0"></script>
+  <script src="js/spacecats.js?v=1.2.0"></script>
+  <script src="js/leaderboard.js?v=1.2.0"></script>
   <script>
     //  Create the starfield.
     var container = document.getElementById('starfield');
@@ -101,12 +101,12 @@
       leaderboardStateChanged();
     };
 
-    //  The first time a device opens a board, offer its existing high score.
+    //  The first time a device opens a board, offer its best score this week.
     Leaderboard.onUpdate = function () {
-      if (game.currentState() instanceof WelcomeState && !initialsOpen() && Leaderboard.shouldOffer(game.highScore)) {
-        var best = game.highScore;
+      if (game.currentState() instanceof WelcomeState && !initialsOpen() && Leaderboard.shouldOffer()) {
+        var best = Leaderboard.weekBest();
         Leaderboard.markOffered();
-        askForInitials('Add the best score on this device, ' + best + ', to the leaderboard?', function (initials) {
+        askForInitials('Add your best this week, ' + best + ', to the board?', function (initials) {
           Leaderboard.highlightId = Leaderboard.submit(initials, best);
         });
       }
@@ -200,9 +200,10 @@
       document.getElementById('coloursButton').textContent = game.randomColours ? 'All green' : 'Random colours';
     }
 
-    //  When a game ends with a score that makes the leaderboard, ask for the
-    //  player's initials, filled in with the last ones used on this device.
-    //  The start and game-over screens fetch the latest board.
+    //  When a game ends with a score that makes this week's top 10, ask for
+    //  the player's initials, filled in with the last ones used on this
+    //  device, and show this week's board. The start and game-over screens
+    //  fetch the latest board.
     function leaderboardStateChanged() {
       var state = game.currentState();
       if (state instanceof LevelIntroState) {
@@ -211,8 +212,10 @@
       if (state instanceof GameOverState && state !== lastGameOver) {
         lastGameOver = state;
         var score = game.score;
+        Leaderboard.played(score);
+        game.boardView = 'week';
         if (Leaderboard.qualifies(score)) {
-          askForInitials('You made the leaderboard with ' + score + '!', function (initials) {
+          askForInitials("You're in this week's top 10 with " + score + '!', function (initials) {
             Leaderboard.highlightId = Leaderboard.submit(initials, score);
           });
         }

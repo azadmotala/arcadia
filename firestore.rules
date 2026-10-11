@@ -1,10 +1,11 @@
 rules_version = '2';
 
-// Rules for Arcadia's leaderboards. Publish them with
-// firebase deploy --only firestore:rules (see firebase.json).
+// Rules for Arcadia's leaderboards. Publish them, with the index the weekly
+// top 10 needs (firestore.indexes.json), using
+// firebase deploy --only firestore (see firebase.json).
 //
 // A family or group's board lives at boards/{code}, where the code is the
-// private ?board= part of their link. Each game keeps its own top 10 on the
+// private ?board= part of their link. Each game keeps its own scores on the
 // board, at boards/{code}/games/{game}/scores. There are no rules for
 // listing boards, so a board can only be read by someone who knows its code.
 service cloud.firestore {
@@ -15,24 +16,38 @@ service cloud.firestore {
       return game in ['space-cats'];
     }
 
+    // Boards start afresh every week, at midnight on Monday, South African
+    // time (UTC+2). Weeks are numbered from the one that started on Monday
+    // 5 January 1970; this is when a week starts, in milliseconds since
+    // 1970. The games work it out the same way (see leaderboard.js).
+    function weekStart(week) {
+      return week * 604800000 + 338400000;
+    }
+
     match /boards/{board}/games/{game}/scores/{scoreId} {
       allow read: if isGame(game);
 
       // Only a game (signed in anonymously) can add a score, and only a
       // well-formed one: three capital letters, a sensible whole-number
-      // score, and when it was played. That comes from the player's device,
-      // whose clock may be a little fast, so it can be up to a day ahead.
+      // score, when it was played, and the week that falls in. The time
+      // comes from the player's device, whose clock may be a little fast,
+      // so it can be up to a day ahead. A score played offline can go up
+      // after its week has ended, but no more than 3 days after.
       allow create: if request.auth != null
         && isGame(game)
         && board.matches('^[A-Za-z0-9-]{6,40}$')
-        && request.resource.data.keys().hasOnly(['initials', 'score', 'playedAt'])
+        && request.resource.data.keys().hasOnly(['initials', 'score', 'playedAt', 'week'])
         && request.resource.data.initials is string
         && request.resource.data.initials.matches('^[A-Z]{3}$')
         && request.resource.data.score is int
         && request.resource.data.score > 0
         && request.resource.data.score <= 10000000
         && request.resource.data.playedAt is timestamp
-        && request.resource.data.playedAt < request.time + duration.value(1, 'd');
+        && request.resource.data.playedAt < request.time + duration.value(1, 'd')
+        && request.resource.data.week is int
+        && request.resource.data.playedAt.toMillis() >= weekStart(request.resource.data.week)
+        && request.resource.data.playedAt.toMillis() < weekStart(request.resource.data.week + 1)
+        && request.time.toMillis() < weekStart(request.resource.data.week + 1) + 259200000;
 
       // Scores can't be changed or removed from a game.
       allow update, delete: if false;

@@ -66,15 +66,15 @@ The start screen shows which version you're playing. If you think you're on an o
 
 ### Family leaderboard
 
-The game can keep a top 10 shared by a family or group of friends, on any device. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
+The game can keep a top 10 shared by a family or group of friends, on any device. It starts again every Monday at midnight (South African time), and last week's winner gets a crown. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
 
-The board's name heads the top 10 on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**.
+The board's name heads it on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**. Under the name, **This week** and **All time** switch between the two top 10s; tap or click one. Below this week's scores is who won last week, and if they're on the board again this week, their crown sits beside them.
 
-<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: a top 10 of three-letter initials and scores" width="360">
+<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: This week and All time, this week's top 10 of three-letter initials and scores, and a crown for last week's winner" width="360">
 
-- When a score makes the top 10, you're asked for your initials: three letters. The last ones used on that device are filled in, so on a shared computer type over them.
-- The first time a device opens a board, it offers the high score it already has.
-- No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way.
+- When a score makes this week's top 10, you're asked for your initials: three letters. The last ones used on that device are filled in, so on a shared computer type over them.
+- The first time a device opens a board, it offers its best score from this week.
+- No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way. If it can't get through within 3 days of the week ending, it's dropped.
 - Need the link again? Any device that's on the board shows it on the Family boards slide of the Arcadia home page, with a Copy button, and Share on devices that can share. [Arcadia's README](../../README.md#family-boards) has more on boards.
 
 ### It gets harder
@@ -138,7 +138,7 @@ games/space-cats/
 ├── index.html            Page, canvas, input handling and touch-screen layout
 ├── js/
 │   ├── spacecats.js      Game loop, cats, fleet, fish, moon rocks, scoring and sound
-│   ├── leaderboard.js    Family leaderboard in Firebase, with a queue for offline play
+│   ├── leaderboard.js    Weekly family leaderboard in Firebase, with a queue for offline play
 │   └── starfield.js      Scrolling star background
 ├── css/                  Page styles
 └── icons/                Browser tab and home-screen icons, and the web app manifest
