@@ -15,7 +15,7 @@
 
 <a href="https://azadmotala.github.io/arcadia/games/space-cats/"><img src="../../docs/screenshot.png" alt="Space Cats in play: rows of green mice in saucers, rat knights and bats over a starfield, a green fish swimming across the top, four green moon rocks, two of them chipped, and Nala the yellow cat firing up from below, with Storm and Everest waiting their turn and two grey bonus cats marked 2K and 6K" width="480"></a>
 
-[How to play](#how-to-play) · [Family leaderboard](#family-leaderboard) · [Run it locally](#run-it-locally) · [Tweak it](#tweak-it) · [Credits](#credits) · [License](#license)
+[How to play](#how-to-play) · [Family leaderboard](#family-leaderboard) · [Today's challenge](#todays-challenge) · [Run it locally](#run-it-locally) · [Tweak it](#tweak-it) · [Credits](#credits) · [License](#license)
 
 </div>
 
@@ -31,6 +31,8 @@ Four moon rocks stand between you and the fleet. Bombs blast holes in them from 
 
 Everything in the fleet is green. Switch on random colours and every wave turns up in a different colour from the last.
 
+Every day there's also [today's challenge](#todays-challenge): three waves, the same for everyone, played as the day's cat with that cat's twist, like Kaida's fish frenzy or Nala's rapid fire.
+
 ## How to play
 
 Space Cats is the first game on **[Arcadia](https://azadmotala.github.io/arcadia/)**: pick it from the cabinets on the home page, or go straight to **[the game](https://azadmotala.github.io/arcadia/games/space-cats/)**. Nothing to install. On a phone or tablet, the game fills the screen and you steer with your thumb.
@@ -41,6 +43,7 @@ To keep it on your home screen, open the game and tap Share → **Add to Home Sc
 |---|---|---|
 | Pick your cat | <kbd>←</kbd> <kbd>→</kbd>, or click a cat | Tap a cat |
 | Start | <kbd>Space</kbd> | Tap anywhere else |
+| Today's challenge | Click **Today** on the board's switch, then <kbd>Space</kbd> | Tap **Today**, then tap anywhere |
 | Move | <kbd>←</kbd> <kbd>→</kbd> | Drag anywhere on the screen. Your cat follows your finger and stops when you let go |
 | Fire | <kbd>Space</kbd> (hold it down to keep firing) | Keep your finger down |
 | Pause | <kbd>P</kbd> or the **Pause** button | **Pause** button, or switch to another app |
@@ -68,9 +71,9 @@ The start screen shows which version you're playing. If you think you're on an o
 
 The game can keep a top 10 shared by a family or group of friends, on any device, with each player on it once, with their best. It starts again every Monday at midnight (South African time), and last week's winner gets a crown. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
 
-The board's name heads it on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**. Under the name, a two-way switch, **This week** and **All time**, changes which top 10 it shows; tap or click either side. On a computer, the pointer turns into a hand over anything on the screen you can click, the cats and the switch. Below this week's scores is who won last week, and if they're on the board again this week, their crown sits beside them.
+The board's name heads it on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**. Under the name, a switch, **Today**, **This week** and **All time**, changes which top 10 it shows; tap or click one. **Today** is [today's challenge](#todays-challenge), and picking it sets the challenge up to play. On a computer, the pointer turns into a hand over anything on the screen you can click, the cats and the switch. Below this week's scores is who won last week, and if they're on the board again this week, their crown sits beside them.
 
-<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: This week and All time, this week's top 10 of players' names and best scores, and a crown for last week's winner" width="360">
+<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: the Today, This week and All time switch, this week's top 10 of players' names and best scores, and a crown for last week's winner" width="360">
 
 - When a score is good enough for this week's top 10, the game asks who played. Tap your name: the last player on that device is first, in gold. Someone new taps **New player** and types a first name or nickname, up to 10 letters. Anyone with the board's link can see the names. The board's players are shared by every game and device on it.
 - Each top 10 shows each player once, with their best, so a score that doesn't beat your best this week still counts as a game played but doesn't change the board.
@@ -79,6 +82,27 @@ The board's name heads it on the start screen and when a game ends. A board made
 - No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way. If it can't get through within 3 days of the week ending, it's dropped.
 - When a game ends, **Share** sends how it went to the family chat, like "Friday night crew · Space Cats · 2nd this week with 3,870 (340 behind Dad)", with a link straight to the game on your board. Phones open their share sheet; on a computer it's copied, ready to paste. A score that isn't on this week's board is shared as just the points and the level.
 - Need the link again? Any device that's on the board shows it on the Family boards slide of the Arcadia home page, with a Copy button, and Share on devices that can share. [Arcadia's README](../../README.md#family-boards) has more on boards.
+
+### Today's challenge
+
+Every day there's a new challenge: three waves, the same for everyone, played as the day's cat with that cat's twist. Pick **Today** on the board's switch (or **Today's challenge** without a board) and start.
+
+<img src="../../docs/daily.png" alt="The start screen on today's challenge: Kaida picked and the other cats dimmed, Today: Kaida's fish frenzy. Three waves. A fish every few seconds. Press Space to start, and the Friday night crew's Today board with Zoe, Dad, Gran, Mum and Leo, and A new challenge at midnight" width="360">
+
+| Cat | Twist |
+|---|---|
+| Storm | Stormy skies: bombs fall twice as fast |
+| Everest | Mountain day: six bigger moon rocks |
+| Kaida | Fish frenzy: a fish every few seconds |
+| Nala | Rapid fire: shoot twice as fast |
+| Aster | Starry fleet: a bigger fleet, double points |
+
+- The cats take turns, one a day, so each comes round every five days. A new challenge starts at midnight, South African time.
+- The bombs, the fish (when they come, which side, what they're worth) and the holes blasted in the moon rocks follow a pattern set by the date, so everyone faces the same run that day.
+- Clear all three waves and each cat you still have is worth 500. Run out of cats and the challenge ends where you got to.
+- Play as often as you like: the **Today** board shows each player's best of the day. Today's challenge doesn't count towards This week or All time, or the device's high score. During play and at the end it shows your best today.
+- Sharing after the challenge says where you came today, and its link opens straight on today's challenge.
+- The twists are in `DAILY_TWISTS` in `js/spacecats.js`, in the same order as the cats.
 
 ### It gets harder
 
@@ -141,7 +165,7 @@ games/space-cats/
 ├── index.html            Page, canvas, input handling and touch-screen layout
 ├── js/
 │   ├── spacecats.js      Game loop, cats, fleet, fish, moon rocks, scoring and sound
-│   ├── leaderboard.js    Weekly family leaderboard in Firebase, with a queue for offline play
+│   ├── leaderboard.js    Family boards in Firebase: players and today's, this week's and all-time top 10s, with a queue for offline play
 │   └── starfield.js      Scrolling star background
 ├── css/                  Page styles
 └── icons/                Browser tab and home-screen icons, and the web app manifest
@@ -149,7 +173,7 @@ games/space-cats/
 
 ## Credits
 
-Space Cats is based on [spaceinvaders](https://github.com/dwmkerr/spaceinvaders) by Dave Kerr, which supplies the game engine, the starfield and the core gameplay. This version adds the cats and picking which one you play as, bonus cats that join as you score, a fleet of mice, rat knights and bats drawn in code with their marching poses and points, the fish, the moon rocks, sounds made in code, the speed-up, a saved high score, a family leaderboard, an option to give every wave a new colour, Pause, Mute and Share buttons, and touch controls for phones and tablets.
+Space Cats is based on [spaceinvaders](https://github.com/dwmkerr/spaceinvaders) by Dave Kerr, which supplies the game engine, the starfield and the core gameplay. This version adds the cats and picking which one you play as, bonus cats that join as you score, a fleet of mice, rat knights and bats drawn in code with their marching poses and points, the fish, the moon rocks, sounds made in code, the speed-up, a saved high score, family leaderboards with players and weekly and daily top 10s, today's challenge, an option to give every wave a new colour, Pause, Mute and Share buttons, and touch controls for phones and tablets.
 
 The cats are named after ours.
 

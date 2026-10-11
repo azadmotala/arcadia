@@ -24,7 +24,7 @@ The home page works like a slide show: three full screens, and each scroll or sw
 
 1. **The arcade at night.** A neon grid floor rolls towards you under wireframe mountains, and the Arcadia sign glows in the sky with light fanning out behind it. Space Cats' fleet floats in an arc under the sign, built in coloured blocks from the game's own pixel art. A cat flies in from the front and picks them off, and every few hits it spins round and the next of the five cats takes over. On a computer, the view leans as you move the mouse.
 2. **The cabinets.** Each game has a cabinet. Space Cats is open, and two locked cabinets hint at what's coming: a climbing game and a maze game. On a computer the cabinets lean towards the pointer.
-3. **Family boards.** Make a board, or copy and share the one you're on.
+3. **Family boards.** The board this device is on, live: today's challenge, this week's top players and last week's champion, with its link to send to the family. Or make a new board.
 
 The header stays at the top on every slide. It's see-through over the scene and darkens once you scroll, and the link for the slide you're on lights up pink. Dots down the right-hand side show where you are, and take you to any slide.
 
@@ -40,7 +40,7 @@ It's built to work for everyone:
 
 | Game | |
 |---|---|
-| [**Space Cats**](https://azadmotala.github.io/arcadia/games/space-cats/) | Mice in flying saucers, rat knights and bats march down on five cats. Pick your cat, shelter behind the moon rocks, and earn the last two cats by scoring points. [How to play](games/space-cats/README.md) |
+| [**Space Cats**](https://azadmotala.github.io/arcadia/games/space-cats/) | Mice in flying saucers, rat knights and bats march down on five cats. Pick your cat, shelter behind the moon rocks, and earn the last two cats by scoring points. Every day there's a new three-wave challenge too, played as the day's cat with its own twist. [How to play](games/space-cats/README.md) |
 
 More games are on the way. Each one lives in its own folder under `games/`.
 
@@ -58,9 +58,13 @@ When a score makes the board, the game asks who played. Each board has its own p
 
 Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away. When a game ends, Share sends the result to the family chat, with a link back to the board.
 
+Space Cats also has a new challenge every day, the same three waves for everyone, played as the day's cat with its twist, with its own **Today** top 10 ([Space Cats' README](games/space-cats/README.md#todays-challenge) has the details).
+
 A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
 
-On a device that's on a board, the Family boards slide shows the board as a live card: its name, which week of its championship this is (week 1 is the week of its first score), last week's champion with a crown, and this week's top players, with a Play button. Phones show the top 3, so the slide fits one screen; taller phones and computers show the top 5.
+On a device that's on a board, the Family boards slide shows the board as a live card: its name, today's challenge (a link that opens it), which week of its championship this is (week 1 is the week of its first score), this week's top players, and last week's champion with a crown, with a Play button. Phones show the top 3, so the slide fits one screen; taller phones and computers show the top 5.
+
+<img src="docs/home-boards.png" alt="The Family boards slide on a computer: the Friday night crew card, with Space Cats, a link to today's challenge, Kaida's fish frenzy, and a Play button, then week 4's top five, Dad, Zoe with a crown, Gran, Mum and Leo, and Zoe won last week with 9,120. Beside it, Invite your family, with the board's link and Copy link and Share buttons" width="720">
 
 Any device that's on a board can send the link again: beside the card (below it on phones) is the link, a Copy button, and a Share button on devices that can share. Making a different board is tucked behind a button underneath.
 
@@ -91,16 +95,16 @@ arcadia/
 ├── index.html              The home page: the scene, the cabinets and the family boards
 ├── assets/
 │   ├── arcadia.css         The neon look, the slides, the header and the cabinets
-│   ├── arcadia.js          Family boards, links between slides, the dots and the header
+│   ├── arcadia.js          Family boards and their live card, links between slides, the dots and the header
 │   ├── scene.js            The 3D scene, drawn with three.js
 │   ├── favicon.svg         The pixel A icon, with PNG versions beside it
 │   ├── manifest.webmanifest  Name and icons for adding Arcadia to a home screen
-│   └── space-cats.png      The picture on the Space Cats cabinet
+│   └── space-cats.png      The picture on the Space Cats cabinet and the board card
 ├── games/
 │   └── space-cats/         Space Cats, with its own README
 ├── docs/                   Pictures for the READMEs
-├── firestore.rules         Who can read and add leaderboard scores
-├── firestore.indexes.json  The index the weekly top 10 needs
+├── firestore.rules         Who can read and add players and scores
+├── firestore.indexes.json  The index for the weekly top 10 of initials scores
 ├── firebase.json           Tells the Firebase CLI where the rules and index are
 └── .firebaserc             Arcadia's Firebase project
 ```
@@ -108,10 +112,10 @@ arcadia/
 ## How the home page works
 
 - **The scene.** `assets/scene.js` loads [three.js](https://threejs.org) 0.160.0 from unpkg, through the import map in `index.html`, and adds a glow on top. Its creatures and cats come from Space Cats' own script, `games/space-cats/js/spacecats.js`, which the page loads first. Change a cat there and the home page follows.
-- **The board card.** The home page also loads Space Cats' `js/leaderboard.js`, the same code the game uses, so the card shows exactly what the game's board does, including scores from this device still waiting to go up. It shows the board as last seen straight away, then fetches the latest, and again when someone comes back to the page.
+- **The board card.** The home page also loads Space Cats' `js/leaderboard.js`, the same code the game uses, so the card shows exactly what the game's board does, including scores from this device still waiting to go up. It shows the board as last seen straight away, then fetches the latest, and again when someone comes back to the page. Today's challenge comes from `spacecats.js`, which the page already loads, so the card and the game always agree on the day's cat.
 - **The fonts.** Headings and the sign use [Tilt Neon](https://fonts.google.com/specimen/Tilt+Neon), and the rest uses [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch), both from Google Fonts.
 - **The slides.** They snap with CSS scroll snapping. Safari on iPhone can pull the page straight back when a link jumps across snapping slides, so `assets/arcadia.js` handles links to the page's own slides itself. It switches snapping off for the jump, glides there, and switches it back on once it arrives, finishing the jump itself if the glide stalls.
-- **What a device remembers.** The board code is kept in the browser as `arcadia.board`, shared by the home page and every game. Each game keeps its own things, such as Space Cats' high score, under its own name, like `arcadia.space-cats.highScore`.
+- **What a device remembers.** The board code is kept in the browser as `arcadia.board`, shared by the home page and every game, along with the anonymous sign-in (`arcadia.auth`), the last player on each board (`arcadia.lastPlayer`) and new players waiting to go up (`arcadia.pendingPlayers`). Each game keeps its own things under its own name, like Space Cats' high score, `arcadia.space-cats.highScore`, its waiting scores and its best this week and today.
 - **Releasing a change.** Change the `?v=` on the links in `index.html` for any file you've changed, so browsers fetch the new version. The footer shows the page's version, read from the `?v=` on the `arcadia.js` link, so keep the three home page links on the same number. GitHub Pages also keeps pages for up to 10 minutes, so a reload may be needed to see a release.
 
 ## The leaderboards
@@ -123,6 +127,7 @@ A board's players are at `boards/{code}/players/{player}`, each with a name and 
 - `plays/{id}`: every game that made the board, with who played, their name, the score, when, and the week.
 - `bests/{player}`: each player's best ever. The all-time top 10 is the highest of these.
 - `weeks/{week}/bests/{player}`: each player's best that week. The week's top 10 is the highest of these, and last week's winner is the top one from the week before.
+- `days/{day}/bests/{player}`: each player's best in that day's challenge. Days are numbered from 1 January 1970 and start at midnight in South Africa. One played offline can go up for a day after its day ends.
 - `scores/{id}`: scores from before players, by three-letter initials. They still show, one row for each set of initials.
 
 The rules in [`firestore.rules`](firestore.rules) let anyone read a board they know the code of, and let a signed-in game add well-formed players and scores to it. Nothing can be deleted, and the only change allowed is a player's best going up.
