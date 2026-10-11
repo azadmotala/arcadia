@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
-  <link href="./assets/arcadia.css?v=2.8.0" rel="stylesheet">
+  <link href="./assets/arcadia.css?v=2.9.0" rel="stylesheet">
   <!-- three.js draws the 3D scene at the top of the page. -->
   <script type="importmap">
     {
@@ -70,7 +70,7 @@
       <div class="cabinets">
         <a class="cabinet live play-link" href="games/space-cats/">
           <span class="marquee">Space Cats</span>
-          <span class="screen"><img src="assets/space-cats.png" width="450" height="432" alt="Space Cats in play: a green fleet of mice in saucers, rat knights and bats above moon rocks, with Nala the yellow cat firing up from below"></span>
+          <span class="screen"><img src="assets/space-cats.png?v=2.9.0" width="450" height="432" alt="Space Cats in play: a green fleet of mice in saucers, rat knights and bats above moon rocks, with Nala the yellow cat firing up from below"></span>
           <span class="blurb">Mice in saucers, rat knights and bats are coming down. Five cats stand in their way.<span class="more"> Pick yours, and score 2,000 and 6,000 points to bring in the last two.</span></span>
           <span class="cats" id="cats" role="list" aria-label="The five cats"></span>
           <span class="cta">Play now &rarr;</span>
@@ -94,7 +94,7 @@
     <section id="boards" class="slide" aria-labelledby="boards-title">
       <p class="eyebrow">Family boards</p>
       <h2 id="boards-title">Your own leaderboard</h2>
-      <p class="section-intro">Make a board, send the link, and everyone's scores land on the same weekly top 10, in every game, from any device. Last week's winner gets a crown.</p>
+      <p class="section-intro">Make a board, send the link, and everyone's scores land on the same weekly top 10, in every game, from any device. Last week's winner gets a crown, and there's a new challenge every day.</p>
       <div class="boards">
         <ol class="steps">
           <li><strong>Name it.</strong> Anything you like. A few random letters go on the end so nobody can guess it.</li>
@@ -103,17 +103,17 @@
         </ol>
         <div id="boardCard" class="panel board-card" hidden>
           <h3 id="cardName" class="card-name"></h3>
-          <p id="cardWeek" class="card-label"></p>
           <div class="card-game">
-            <img src="assets/space-cats.png" width="56" height="56" alt="">
+            <img src="assets/space-cats.png?v=2.9.0" width="56" height="56" alt="">
             <div class="card-game-text">
               <p class="card-game-name">Space Cats</p>
-              <p id="cardChampion" class="card-champion"></p>
+              <a id="cardToday" class="card-today play-link" data-daily href="games/space-cats/?daily=1"></a>
             </div>
             <a class="btn primary play-link" href="games/space-cats/">Play</a>
           </div>
-          <p class="card-label">This week</p>
+          <p id="cardWeek" class="card-label">This week</p>
           <ol id="cardRows" class="card-rows"></ol>
+          <p id="cardChampion" class="card-champion"></p>
           <p id="cardNote" class="card-note" role="status"></p>
         </div>
         <div class="panel">
@@ -151,10 +151,10 @@
   </ul>
 
   <!-- Space Cats' own sprites and cats, so the page and the game always match. -->
-  <script src="games/space-cats/js/spacecats.js?v=1.4.1"></script>
-  <script src="games/space-cats/js/leaderboard.js?v=1.4.1"></script>
-  <script src="assets/arcadia.js?v=2.8.0"></script>
-  <script type="module" src="assets/scene.js?v=2.8.0"></script>
+  <script src="games/space-cats/js/spacecats.js?v=1.5.0"></script>
+  <script src="games/space-cats/js/leaderboard.js?v=1.5.0"></script>
+  <script src="assets/arcadia.js?v=2.9.0"></script>
+  <script type="module" src="assets/scene.js?v=2.9.0"></script>
 </body>
 
 </html>

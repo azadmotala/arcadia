@@ -170,6 +170,54 @@ var FISH_POINTS = [100, 100, 100, 200, 200, 300, 500];
 //  It doesn't come once the fleet is down to fewer invaders than this.
 var FISH_MIN_INVADERS = 8;
 
+//  Today's challenge: everyone plays the same three waves each day, as the
+//  day's cat, with that cat's twist. The cats take turns, one a day, and a
+//  day starts at midnight, South African time, like the weekly boards. The
+//  bombs, the fish and the holes blasted in the moon rocks follow a pattern
+//  set by the date, so everyone that day faces the same run.
+var DAILY_WAVES = 3;
+
+//  Finishing all three waves, each cat still left is worth this much.
+var DAILY_CAT_BONUS = 500;
+
+//  Each cat's twist, in the same order as CATS.
+var DAILY_TWISTS = [
+  { cat: 0, name: "Stormy skies", what: "Bombs fall twice as fast", bombSpeed: 2 },
+  { cat: 1, name: "Mountain day", what: "Six bigger moon rocks", shields: 6, shieldPixelSize: 2 },
+  { cat: 2, name: "Fish frenzy", what: "A fish every few seconds", fishInterval: [3, 6] },
+  { cat: 3, name: "Rapid fire", what: "Shoot twice as fast", fireRate: 2 },
+  { cat: 4, name: "Starry fleet", what: "A bigger fleet, double points", biggerFleet: true, points: 2 }
+];
+
+//  The day a moment falls in, numbered from 1 January 1970, with days
+//  starting at midnight in South Africa (UTC+2).
+function dayNumber(time) {
+  return Math.floor((time + 2 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000));
+}
+
+//  Today's challenge: the day, its twist and its cat.
+function todaysChallenge() {
+  var day = dayNumber(Date.now());
+  var twist = DAILY_TWISTS[day % DAILY_TWISTS.length];
+  return { day: day, twist: twist, cat: twist.cat };
+}
+
+//  A challenge's name, like "Kaida's fish frenzy".
+function challengeName(challenge) {
+  return CATS[challenge.cat].name + "'s " + challenge.twist.name.toLowerCase();
+}
+
+//  A stream of random numbers that's the same every time for the same seed
+//  (it's mulberry32), so a day's challenge plays out the same for everyone.
+function seededRandom(seed) {
+  return function() {
+    seed = (seed + 0x6D2B79F5) | 0;
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 //  The three notes it bubbles as it swims, in Hz.
 var FISH_NOTES = [988, 1319, 1175];
 
@@ -335,6 +383,14 @@ function Game() {
   //  counting the one playing now.
   this.chosenCat = loadChosenCat();
   this.catsLost = 0;
+
+  //  Which board the start and game-over screens show: 'today', 'week' or
+  //  'all'. On 'today', Space starts today's challenge.
+  this.boardView = 'week';
+
+  //  Today's challenge, while one is being played: { day, twist, cat,
+  //  startedAt }, and once it's over, whether all three waves were cleared.
+  this.daily = null;
   this.bonusCats = 0;
 
   //  A message across the middle of the play area, such as a cat joining,
@@ -554,11 +610,13 @@ Game.prototype.chooseCat = function(cat) {
   this.updateTabIcon();
 };
 
-//  Every cat in the order they play: yours first, then the rest.
+//  Every cat in the order they play: yours first (or in today's challenge,
+//  the day's cat), then the rest.
 Game.prototype.catOrder = function() {
-  var order = [this.chosenCat];
+  var first = this.daily ? this.daily.cat : this.chosenCat;
+  var order = [first];
   for (var i = 0; i < CATS.length; i++) {
-    if (i !== this.chosenCat) {
+    if (i !== first) {
       order.push(i);
     }
   }
@@ -587,8 +645,14 @@ Game.prototype.showMessage = function(text, colour) {
   this.messageTime = 2;
 };
 
-//  Starts a new game from level 1.
+//  Starts a new game from level 1: today's challenge if the start screen is
+//  showing today's board.
 Game.prototype.newGame = function() {
+  this.daily = this.boardView === 'today' ? todaysChallenge() : null;
+  if (this.daily) {
+    this.daily.startedAt = new Date().toISOString();
+  }
+  this.dayBestAtStart = this.daily && this.leaderboard ? this.leaderboard.dayBest() : 0;
   this.level = 1;
   this.score = 0;
   this.lives = this.startCats();
@@ -602,11 +666,12 @@ Game.prototype.newGame = function() {
 };
 
 //  Adds points to the score, and saves a new high score as soon as it's
-//  reached, so closing the page mid-game doesn't lose it. Each score in
-//  bonusCatScores brings in the next cat, which is an extra life.
+//  reached, so closing the page mid-game doesn't lose it (today's challenge
+//  keeps its own best instead). Each score in bonusCatScores brings in the
+//  next cat, which is an extra life.
 Game.prototype.addScore = function(points) {
   this.score += points;
-  if (this.score > this.highScore) {
+  if (!this.daily && this.score > this.highScore) {
     this.highScore = this.score;
     saveHighScore(this.highScore);
   }
@@ -775,6 +840,8 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
 
   //  Clear the background.
   ctx.clearRect(0, 0, game.width, game.height);
+  game.boardSwitch = null;
+  var daily = game.boardView === 'today' ? todaysChallenge() : null;
 
   //  With a leaderboard, everything moves up to make room for it.
   var hasBoard = hasLeaderboard(game);
@@ -787,13 +854,19 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   ctx.textAlign = "center";
   ctx.fillText("Space Cats", x, y);
 
-  //  The cats to pick from, with a box round the one you'll play as.
+  //  The cats to pick from, with a box round the one you'll play as. In
+  //  today's challenge everyone plays as the day's cat.
   this.catsY = y + 42;
-  drawCatPicker(game, ctx, this.catsY);
+  drawCatPicker(game, ctx, this.catsY, daily);
 
   ctx.font = "16px Arial";
   ctx.fillStyle = '#ffffff';
-  if (game.touchMode) {
+  if (daily) {
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillText("Today: " + challengeName(daily) + ". Three waves.", x, y + 96);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(daily.twist.what + ". " + (game.touchMode ? "Tap anywhere to start." : "Press Space to start."), x, y + 120);
+  } else if (game.touchMode) {
     ctx.fillText("Tap a cat to pick it. Tap anywhere else to start.", x, y + 96);
     ctx.fillText("Drag anywhere to move. Hold to keep firing.", x, y + 120);
   } else {
@@ -801,8 +874,16 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   }
   if (hasBoard) {
     drawLeaderboard(game, ctx, y + 146);
-  } else if (game.highScore > 0) {
-    ctx.fillText("High score: " + withCommas(game.highScore), x, y + 150);
+  } else {
+    //  Without a board, a switch between a normal game and today's
+    //  challenge, and the best for whichever it is.
+    drawBoardSwitch(game, ctx, y + 150, SOLO_VIEWS);
+    var best = daily ? game.leaderboard && game.leaderboard.dayBest() : game.highScore;
+    if (best > 0) {
+      ctx.font = "16px Arial";
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText((daily ? "Best today: " : "High score: ") + withCommas(best), x, y + 182);
+    }
   }
   if (GAME_VERSION) {
     ctx.font = "12px Arial";
@@ -829,19 +910,23 @@ function hasHomeLink(game) {
 }
 
 //  Draws the five cats in a row, each with its name, centred on y. On a
-//  computer, a cat the pointer is over gets a faint box.
-function drawCatPicker(game, ctx, y) {
+//  computer, a cat the pointer is over gets a faint box. In today's
+//  challenge the day's cat is picked and the others are dimmed.
+function drawCatPicker(game, ctx, y, daily) {
   var width = CAT_FACES.plain[0].length * PICKER_PIXEL_SIZE;
   var height = CAT_FACES.plain.length * PICKER_PIXEL_SIZE;
-  var hovered = game.hovered && typeof game.hovered.cat === 'number' ? game.hovered.cat : -1;
+  var hovered = !daily && game.hovered && typeof game.hovered.cat === 'number' ? game.hovered.cat : -1;
+  var picked = daily ? daily.cat : game.chosenCat;
   ctx.imageSmoothingEnabled = false;
   for (var i = 0; i < CATS.length; i++) {
     var catX = pickerCatX(game, i);
+    var chosen = i === picked;
+    ctx.globalAlpha = daily && !chosen ? 0.25 : 1;
     ctx.drawImage(game.catSprites[i], catX - width / 2, y - height / 2 - 6, width, height);
-    var chosen = i === game.chosenCat;
     ctx.font = "12px Arial";
     ctx.fillStyle = chosen ? CATS[i].colour : (i === hovered ? '#dddddd' : '#888888');
     ctx.fillText(CATS[i].name, catX, y + 16);
+    ctx.globalAlpha = 1;
     if (chosen || i === hovered) {
       ctx.strokeStyle = chosen ? CATS[i].colour : 'rgba(255, 255, 255, 0.35)';
       ctx.lineWidth = 1;
@@ -855,7 +940,7 @@ WelcomeState.prototype.keyDown = function(game, keyCode) {
   if (keyCode == KEY_SPACE) {
     //  Space starts the game.
     game.newGame();
-  } else if (keyCode == KEY_LEFT || keyCode == KEY_RIGHT) {
+  } else if ((keyCode == KEY_LEFT || keyCode == KEY_RIGHT) && game.boardView !== 'today') {
     game.chooseCat(game.chosenCat + (keyCode == KEY_LEFT ? -1 : 1));
   }
 };
@@ -880,9 +965,10 @@ WelcomeState.prototype.tap = function(game, point) {
   return false;
 };
 
-//  Which cat on the start screen a point is on, or null.
+//  Which cat on the start screen a point is on, or null. In today's
+//  challenge the cat is set, so none can be picked.
 WelcomeState.prototype.catAt = function(game, point) {
-  if (Math.abs(point.y - this.catsY) > 30) {
+  if (game.boardView === 'today' || Math.abs(point.y - this.catsY) > 30) {
     return null;
   }
   for (var i = 0; i < CATS.length; i++) {
@@ -913,7 +999,11 @@ function GameOverState() {
 //  whether it beat it.
 GameOverState.prototype.enter = function(game) {
   this.weekBestBefore = 0;
-  if (game.leaderboard) {
+  this.dayBestBefore = 0;
+  if (game.leaderboard && game.daily) {
+    this.dayBestBefore = game.leaderboard.dayBest();
+    game.leaderboard.playedDaily(game.score);
+  } else if (game.leaderboard) {
     this.weekBestBefore = game.leaderboard.weekBest();
     game.leaderboard.played(game.score);
   }
@@ -927,18 +1017,40 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
 
   //  Clear the background.
   ctx.clearRect(0, 0, game.width, game.height);
+  game.boardSwitch = null;
 
   //  With a leaderboard, everything moves up to make room for it.
   var hasBoard = hasLeaderboard(game);
   var x = game.width / 2;
   var y = hasBoard ? 165 : game.height / 2 - 40;
+  var daily = game.daily;
 
   ctx.font = "30px Arial";
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
-  ctx.fillText("Game Over!", x, y);
+  ctx.fillText(daily && daily.complete ? "Challenge complete!" : "Game Over!", x, y);
   ctx.font = "16px Arial";
+  if (daily) {
+    ctx.fillText(daily.complete ? "You scored " + withCommas(game.score) + ", including " + withCommas(DAILY_CAT_BONUS) + " for each cat left" :
+      "You scored " + withCommas(game.score) + " and got to wave " + game.level, x, y + 40);
+    //  Compared with this device's best in today's challenge.
+    var dayBest = game.leaderboard ? game.leaderboard.dayBest() : 0;
+    if (game.score > this.dayBestBefore) {
+      ctx.fillStyle = '#ffd54f';
+      ctx.fillText("New best today!", x, y + 66);
+      ctx.fillStyle = '#ffffff';
+    } else if (dayBest > 0) {
+      ctx.fillText("Your best today: " + withCommas(dayBest), x, y + 66);
+    }
+    if (hasBoard) {
+      drawLeaderboard(game, ctx, y + 96);
+    }
+    ctx.font = "16px Arial";
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(game.touchMode ? "Tap to play again." : "Press Space to play again.", x, hasBoard ? y + 328 : y + 92);
+    return;
+  }
   ctx.fillText("You scored " + withCommas(game.score) + " and got to level " + game.level, x, y + 40);
   //  On a board, the game is compared with this device's best this week, to
   //  match the weekly top 10 underneath. Without one, with its best ever.
@@ -983,8 +1095,9 @@ function hasLeaderboard(game) {
 //  says if the board couldn't be reached.
 function drawLeaderboard(game, ctx, y) {
   var board = game.leaderboard;
-  var weekly = game.boardView !== 'all';
-  var entries = board.top(weekly ? 'week' : 'all');
+  var view = game.boardView;
+  var weekly = view === 'week';
+  var entries = board.top(view);
   var champion = weekly ? board.champion() : null;
   var x = game.width / 2;
   var rowsY = y + 42;
@@ -993,12 +1106,11 @@ function drawLeaderboard(game, ctx, y) {
   ctx.font = "14px Arial";
   ctx.fillStyle = '#ffd54f';
   ctx.fillText(board.name() || "Leaderboard", x, y);
-  drawBoardSwitch(game, ctx, y + 20, weekly);
+  drawBoardSwitch(game, ctx, y + 20, BOARD_VIEWS);
   ctx.font = "13px Arial";
   if (!entries.length) {
     ctx.fillStyle = '#888888';
-    ctx.fillText(board.status() === 'loading' ? "Loading…" :
-      (weekly ? "No scores yet this week. Be the first!" : "No scores yet. Be the first!"), x, rowsY);
+    ctx.fillText(board.status() === 'loading' ? "Loading…" : EMPTY_BOARD[view], x, rowsY);
   }
   for (var i = 0; i < entries.length; i++) {
     var entry = entries[i];
@@ -1025,9 +1137,9 @@ function drawLeaderboard(game, ctx, y) {
     ctx.textAlign = "left";
     ctx.fillStyle = '#ffd54f';
     ctx.fillText(text, x - width / 2 + CROWN_WIDTH + 6, footerY);
-  } else if (weekly && board.status() === 'online') {
+  } else if (view !== 'all' && board.status() === 'online') {
     ctx.fillStyle = '#888888';
-    ctx.fillText("Starts fresh every Monday", x, footerY);
+    ctx.fillText(weekly ? "Starts fresh every Monday" : "A new challenge at midnight", x, footerY);
   }
   ctx.textAlign = "center";
   ctx.fillStyle = '#ffffff';
@@ -1049,45 +1161,64 @@ function fitText(ctx, text, width) {
 }
 
 //  The two top 10s the leaderboard can show, side by side above it.
+//  The top 10s the leaderboard can show, side by side above it: today's
+//  challenge, this week's and the all-time one. Picking Today also sets up
+//  today's challenge to play.
 var BOARD_VIEWS = [
+  { view: 'today', label: "Today" },
   { view: 'week', label: "This week" },
   { view: 'all', label: "All time" }
 ];
+
+//  Without a board, the switch picks a normal game or today's challenge.
+var SOLO_VIEWS = [
+  { view: 'week', label: "Normal game" },
+  { view: 'today', label: "Today's challenge" }
+];
+
+var EMPTY_BOARD = {
+  today: "No scores yet today. Be the first!",
+  week: "No scores yet this week. Be the first!",
+  all: "No scores yet. Be the first!"
+};
+
 var BOARD_SWITCH_PADDING = 12;
 var BOARD_SWITCH_HEIGHT = 20;
 
-//  Draws the switch between this week's top 10 and the all-time one,
-//  centred on y: two halves in a rounded outline, like the buttons, with
-//  the one showing filled in. On a computer, the other half lights up when
-//  the pointer is over it. Remembers where it is, so a tap can tell which
-//  half was picked.
-function drawBoardSwitch(game, ctx, y, weekly) {
+//  Draws a switch between views, centred on y: its parts in a rounded
+//  outline, like the buttons, with the one showing filled in. On a
+//  computer, another part lights up when the pointer is over it. Remembers
+//  where each part is, so a tap can tell which was picked.
+function drawBoardSwitch(game, ctx, y, views) {
   var x = game.width / 2;
   ctx.font = "13px Arial";
-  var widths = BOARD_VIEWS.map(function(option) { return ctx.measureText(option.label).width + 2 * BOARD_SWITCH_PADDING; });
-  var left = x - (widths[0] + widths[1]) / 2;
+  var widths = views.map(function(option) { return ctx.measureText(option.label).width + 2 * BOARD_SWITCH_PADDING; });
+  var total = widths.reduce(function(sum, width) { return sum + width; }, 0);
+  var left = x - total / 2;
   var top = y - BOARD_SWITCH_HEIGHT / 2;
   var radius = BOARD_SWITCH_HEIGHT / 2;
   var hovered = game.hovered && game.hovered.view;
-  var segmentLeft = left;
+  var parts = [];
+  var partLeft = left;
   ctx.textAlign = "center";
-  for (var i = 0; i < BOARD_VIEWS.length; i++) {
-    var view = BOARD_VIEWS[i].view;
-    var chosen = (view === 'week') === weekly;
+  for (var i = 0; i < views.length; i++) {
+    var view = views[i].view;
+    var chosen = view === game.boardView;
     if (chosen || view === hovered) {
       ctx.fillStyle = chosen ? 'rgba(255, 255, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)';
-      roundedRect(ctx, segmentLeft, top, widths[i], BOARD_SWITCH_HEIGHT, radius);
+      roundedRect(ctx, partLeft, top, widths[i], BOARD_SWITCH_HEIGHT, radius);
       ctx.fill();
     }
     ctx.fillStyle = chosen ? '#ffffff' : (view === hovered ? '#dddddd' : '#999999');
-    ctx.fillText(BOARD_VIEWS[i].label, segmentLeft + widths[i] / 2, y);
-    segmentLeft += widths[i];
+    ctx.fillText(views[i].label, partLeft + widths[i] / 2, y);
+    parts.push({ view: view, left: partLeft, right: partLeft + widths[i] });
+    partLeft += widths[i];
   }
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
   ctx.lineWidth = 1;
-  roundedRect(ctx, left, top, widths[0] + widths[1], BOARD_SWITCH_HEIGHT, radius);
+  roundedRect(ctx, left, top, total, BOARD_SWITCH_HEIGHT, radius);
   ctx.stroke();
-  game.boardSwitch = { left: left, middle: left + widths[0], right: left + widths[0] + widths[1], y: y };
+  game.boardSwitch = { parts: parts, y: y };
 }
 
 //  Traces a rectangle with rounded ends (ctx.roundRect isn't in older
@@ -1102,20 +1233,27 @@ function roundedRect(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
-//  Which half of the leaderboard's switch a point is on, 'week' or 'all', or
+//  Which part of the switch a point is on ('today', 'week' or 'all'), or
 //  null if it's not on the switch. The area counted is a little bigger than
 //  the switch, for fingers.
 function boardSwitchAt(game, point) {
   var drawn = game.boardSwitch;
-  if (!hasLeaderboard(game) || !drawn || Math.abs(point.y - drawn.y) > 16 ||
-    point.x < drawn.left - 10 || point.x > drawn.right + 10) {
+  if (!drawn || Math.abs(point.y - drawn.y) > 16) {
     return null;
   }
-  return point.x < drawn.middle ? 'week' : 'all';
+  var parts = drawn.parts;
+  for (var i = 0; i < parts.length; i++) {
+    var left = i === 0 ? parts[i].left - 10 : parts[i].left;
+    var right = i === parts.length - 1 ? parts[i].right + 10 : parts[i].right;
+    if (point.x >= left && point.x < right) {
+      return parts[i].view;
+    }
+  }
+  return null;
 }
 
-//  A tap on the switch above the leaderboard shows this week's top 10 or
-//  the all-time one. Says whether it hit.
+//  A tap on the switch shows another top 10 (and on Today, sets up today's
+//  challenge). Says whether it hit.
 function tapBoardSwitch(game, point) {
   var view = boardSwitchAt(game, point);
   if (view) {
@@ -1206,6 +1344,19 @@ PlayState.prototype.enter = function(game) {
   this.invadersAreDropping = false;
   game.touchDrag = 0;
 
+  //  In today's challenge, the day's twist, and random numbers that follow
+  //  the day's pattern: one stream each for the bombs, the fish and the
+  //  moon rocks, begun again each wave, so one doesn't upset another.
+  var twist = game.daily ? game.daily.twist : {};
+  var seed = game.daily ? game.daily.day * 100 + this.level * 10 : 0;
+  this.random = {
+    bombs: game.daily ? seededRandom(seed + 1) : Math.random,
+    fish: game.daily ? seededRandom(seed + 2) : Math.random,
+    rocks: game.daily ? seededRandom(seed + 3) : Math.random
+  };
+  this.pointsMultiplier = twist.points || 1;
+  this.fishInterval = twist.fishInterval || [this.config.fishMinInterval, this.config.fishMaxInterval];
+
   //  Set the ship speed for this level, as well as invader params.
   var levelMultiplier = this.level * this.config.levelDifficultyMultiplier;
   var limitLevel = (this.level < this.config.limitLevelIncrease ? this.level : this.config.limitLevelIncrease);
@@ -1215,10 +1366,17 @@ PlayState.prototype.enter = function(game) {
   this.bombMinVelocity = this.config.bombMinVelocity + (levelMultiplier * this.config.bombMinVelocity);
   this.bombMaxVelocity = this.config.bombMaxVelocity + (levelMultiplier * this.config.bombMaxVelocity);
   this.rocketMaxFireRate = this.config.rocketMaxFireRate + 0.4 * limitLevel;
+  if (twist.bombSpeed) {
+    this.bombMinVelocity *= twist.bombSpeed;
+    this.bombMaxVelocity *= twist.bombSpeed;
+  }
+  if (twist.fireRate) {
+    this.rocketMaxFireRate *= twist.fireRate;
+  }
 
   //  Create the invaders.
-  var ranks = this.config.invaderRanks + 0.1 * limitLevel;
-  var files = this.config.invaderFiles + 0.2 * limitLevel;
+  var ranks = this.config.invaderRanks + 0.1 * limitLevel + (twist.biggerFleet ? 1 : 0);
+  var files = this.config.invaderFiles + 0.2 * limitLevel + (twist.biggerFleet ? 2 : 0);
   var invaders = [];
   var rankCount = Math.ceil(ranks);
   game.pickInvaderColour();
@@ -1239,10 +1397,11 @@ PlayState.prototype.enter = function(game) {
   //  Fresh shields for each wave, spread evenly above the ship.
   this.shields = [];
   var playWidth = game.gameBounds.right - game.gameBounds.left;
-  for (var n = 0; n < this.config.shieldCount; n++) {
+  var shieldCount = twist.shields || this.config.shieldCount;
+  for (var n = 0; n < shieldCount; n++) {
     this.shields.push(new Shield(
-      game.gameBounds.left + playWidth * (n + 0.5) / this.config.shieldCount,
-      game.gameBounds.bottom - 45));
+      game.gameBounds.left + playWidth * (n + 0.5) / shieldCount,
+      game.gameBounds.bottom - 45, twist.shieldPixelSize));
   }
   this.invaderCurrentVelocity = this.invaderInitialVelocity;
   this.invaderVelocity = { x: -this.invaderInitialVelocity, y: 0 };
@@ -1278,7 +1437,7 @@ PlayState.prototype.shieldHit = function(x, y1, y2) {
 
 //  Sets how long until the next fish comes.
 PlayState.prototype.resetFishTimer = function() {
-  this.fishTimer = this.config.fishMinInterval + Math.random() * (this.config.fishMaxInterval - this.config.fishMinInterval);
+  this.fishTimer = this.fishInterval[0] + this.random.fish() * (this.fishInterval[1] - this.fishInterval[0]);
 };
 
 //  A fish swims across the top now and then, from either side, bubbling as
@@ -1289,7 +1448,7 @@ PlayState.prototype.updateFish = function(game, dt) {
     if (this.invaders.length >= FISH_MIN_INVADERS) {
       this.fishTimer -= dt;
       if (this.fishTimer <= 0) {
-        var fromLeft = Math.random() < 0.5;
+        var fromLeft = this.random.fish() < 0.5;
         this.fish = new Fish(
           fromLeft ? game.gameBounds.left - margin : game.gameBounds.right + margin,
           game.gameBounds.top - 16,
@@ -1373,7 +1532,7 @@ PlayState.prototype.update = function(game, dt) {
     bomb.y += dt * bomb.velocity;
     var bombHit = this.shieldHit(bomb.x, bombFront, bomb.y + 2);
     if (bombHit) {
-      bombHit.shield.blast(bomb.x, bombHit.y);
+      bombHit.shield.blast(bomb.x, bombHit.y, this.random.rocks);
       this.bombs.splice(i--, 1);
     } else if (bomb.y > game.height) {
       //  It's gone off the screen.
@@ -1388,7 +1547,7 @@ PlayState.prototype.update = function(game, dt) {
     rocket.y -= dt * rocket.velocity;
     var rocketHit = this.shieldHit(rocket.x + 0.5, rocketFront, rocket.y - 2);
     if (rocketHit) {
-      rocketHit.shield.blast(rocket.x + 0.5, rocketHit.y);
+      rocketHit.shield.blast(rocket.x + 0.5, rocketHit.y, this.random.rocks);
       this.rockets.splice(i--, 1);
     } else if (rocket.y < 0) {
       //  It's gone off the screen.
@@ -1491,7 +1650,7 @@ PlayState.prototype.update = function(game, dt) {
     var fish = this.fish;
     if (shot.x >= fish.x - fish.width / 2 && shot.x <= fish.x + fish.width / 2 &&
       shot.y >= fish.y - fish.height / 2 && shot.y <= fish.y + fish.height / 2) {
-      var points = FISH_POINTS[Math.floor(Math.random() * FISH_POINTS.length)];
+      var points = FISH_POINTS[Math.floor(this.random.fish() * FISH_POINTS.length)] * this.pointsMultiplier;
       game.addScore(points);
       this.fishScore = { points: points, x: fish.x, y: fish.y, timeLeft: 1 };
       this.rockets.splice(i, 1);
@@ -1516,7 +1675,7 @@ PlayState.prototype.update = function(game, dt) {
         //  this rocket again.
         this.rockets.splice(j--, 1);
         bang = true;
-        game.addScore(INVADER_TYPES[invader.type].points);
+        game.addScore(INVADER_TYPES[invader.type].points * this.pointsMultiplier);
         break;
       }
     }
@@ -1542,10 +1701,10 @@ PlayState.prototype.update = function(game, dt) {
   for (var file in frontRankInvaders) {
     var invader = frontRankInvaders[file];
     var chance = this.bombRate * dt;
-    if (chance > Math.random()) {
+    if (chance > this.random.bombs()) {
       //  Fire!
       this.bombs.push(new Bomb(invader.x, invader.y + invader.height / 2,
-        this.bombMinVelocity + Math.random() * (this.bombMaxVelocity - this.bombMinVelocity)));
+        this.bombMinVelocity + this.random.bombs() * (this.bombMaxVelocity - this.bombMinVelocity)));
     }
   }
 
@@ -1577,13 +1736,18 @@ PlayState.prototype.update = function(game, dt) {
   //  Check for failure
   if (game.lives <= 0) {
     game.moveToState(new GameOverState());
-  }
-
-  //  Check for victory
-  if (this.invaders.length === 0) {
+  } else if (this.invaders.length === 0) {
+    //  The wave is cleared. Today's challenge ends after three, with a
+    //  bonus for each cat still left.
     game.addScore(this.level * 50);
-    game.level += 1;
-    game.moveToState(new LevelIntroState(game.level));
+    if (game.daily && this.level >= DAILY_WAVES) {
+      game.daily.complete = true;
+      game.addScore(game.lives * DAILY_CAT_BONUS);
+      game.moveToState(new GameOverState());
+    } else {
+      game.level += 1;
+      game.moveToState(new LevelIntroState(game.level));
+    }
   }
 };
 
@@ -1661,11 +1825,12 @@ PlayState.prototype.draw = function(game, dt, ctx) {
   //  family board the best is this device's best this week, to match the
   //  weekly top 10, and it goes up with the score once that passes it.
   ctx.textAlign = "left";
-  ctx.fillText("Level: " + game.level, game.gameBounds.left, textYpos);
+  ctx.fillText(game.daily ? "Wave " + game.level + " of " + DAILY_WAVES : "Level: " + game.level, game.gameBounds.left, textYpos);
   ctx.textAlign = "center";
   ctx.fillText("Score: " + withCommas(game.score), game.width / 2, textYpos);
   ctx.textAlign = "right";
-  ctx.fillText(hasLeaderboard(game) ? "Best this week: " + withCommas(Math.max(game.weekBestAtStart, game.score)) : "High score: " + withCommas(game.highScore),
+  ctx.fillText(game.daily ? "Best today: " + withCommas(Math.max(game.dayBestAtStart, game.score)) :
+    hasLeaderboard(game) ? "Best this week: " + withCommas(Math.max(game.weekBestAtStart, game.score)) : "High score: " + withCommas(game.highScore),
     game.gameBounds.right, textYpos);
 
   //  A cat joining or floating home, across the middle.
@@ -1809,7 +1974,14 @@ LevelIntroState.prototype.draw = function(game, dt, ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
-  ctx.fillText("Level " + this.level, game.width / 2, game.height / 2);
+  if (game.daily) {
+    ctx.font = "18px Arial";
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillText(challengeName(game.daily), game.width / 2, game.height / 2 - 40);
+    ctx.font = "36px Arial";
+    ctx.fillStyle = '#ffffff';
+  }
+  ctx.fillText(game.daily ? "Wave " + this.level + " of " + DAILY_WAVES : "Level " + this.level, game.width / 2, game.height / 2);
   ctx.font = "24px Arial";
   ctx.fillText("Ready in " + this.countdownMessage, game.width / 2, game.height / 2 + 36);
   return;
@@ -1881,11 +2053,12 @@ function Invader(x, y, rank, file, type) {
     A moon rock that wears away. It keeps which of its pixels are left, and
     its own small canvas to draw, which loses those pixels too.
 */
-function Shield(x, y) {
+function Shield(x, y, pixelSize) {
   this.x = x;
   this.y = y;
-  this.width = SHIELD_PIXELS[0].length * INVADER_PIXEL_SIZE;
-  this.height = SHIELD_PIXELS.length * INVADER_PIXEL_SIZE;
+  this.pixelSize = pixelSize || INVADER_PIXEL_SIZE;
+  this.width = SHIELD_PIXELS[0].length * this.pixelSize;
+  this.height = SHIELD_PIXELS.length * this.pixelSize;
   this.pixels = SHIELD_PIXELS.map(function(row) {
     return row.split('').map(function(pixel) { return pixel === '#'; });
   });
@@ -1894,10 +2067,10 @@ function Shield(x, y) {
 
 //  The grid column and row at a point in the game.
 Shield.prototype.columnAt = function(x) {
-  return Math.floor((x - (this.x - this.width / 2)) / INVADER_PIXEL_SIZE);
+  return Math.floor((x - (this.x - this.width / 2)) / this.pixelSize);
 };
 Shield.prototype.rowAt = function(y) {
-  return Math.floor((y - (this.y - this.height / 2)) / INVADER_PIXEL_SIZE);
+  return Math.floor((y - (this.y - this.height / 2)) / this.pixelSize);
 };
 
 //  Whether there's any shield left at a point in the game.
@@ -1914,14 +2087,15 @@ Shield.prototype.erasePixel = function(column, row) {
   }
 };
 
-//  Blows a ragged hole where a shot or bomb hits.
-Shield.prototype.blast = function(x, y) {
+//  Blows a ragged hole where a shot or bomb hits, its edges chosen by the
+//  random numbers given.
+Shield.prototype.blast = function(x, y, random) {
   var column = this.columnAt(x);
   var row = this.rowAt(y);
   for (var dy = -2; dy <= 2; dy++) {
     for (var dx = -2; dx <= 2; dx++) {
       var distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance <= 1.5 || (distance <= 2.5 && Math.random() < 0.5)) {
+      if (distance <= 1.5 || (distance <= 2.5 && random() < 0.5)) {
         this.erasePixel(column + dx, row + dy);
       }
     }

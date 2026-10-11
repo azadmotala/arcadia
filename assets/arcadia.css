@@ -601,7 +601,7 @@ footer .version::before { content: "· "; margin-left: 6px; }
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 18px 0;
+  margin: 14px 0 18px;
   padding-bottom: 18px;
   border-bottom: 1px solid rgba(49, 214, 255, 0.25);
 }
@@ -618,7 +618,18 @@ footer .version::before { content: "· "; margin-left: 6px; }
 
 .card-game-name { margin: 0; font-weight: 700; color: #fff; }
 
-.card-champion { margin: 2px 0 0; font-size: 15px; font-weight: 600; color: #ffd54f; }
+.card-today {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cyan);
+  text-underline-offset: 3px;
+}
+
+.card-champion { margin: 10px 0 0; font-size: 15px; font-weight: 600; color: #ffd54f; }
+
+.card-champion.quiet { color: var(--muted); }
 
 .card-game .btn { flex: none; min-height: 42px; padding: 0 18px; }
 
@@ -681,9 +692,11 @@ footer .version::before { content: "· "; margin-left: 6px; }
   #boards.has-board .eyebrow { margin-bottom: 10px; }
   .card-name { font-size: 26px; }
   #boards.has-board .boards { gap: 16px; }
-  .card-game { margin: 10px 0; padding-bottom: 10px; gap: 12px; }
+  .card-game { margin: 8px 0 10px; padding-bottom: 8px; gap: 12px; }
   .card-game img { width: 44px; height: 44px; }
   .card-rows li { padding: 5px 0; font-size: 16px; }
+  .card-game + .card-label { margin-top: 0; }
+  .card-champion { margin-top: 4px; }
   .current #currentMessage { display: none; }
   .current .actions { margin-top: 12px; }
   .link-box { padding: 10px 12px; font-size: 15px; }

@@ -9,7 +9,7 @@
   Each board has its own players, by first name or nickname, shared by
   every game and device on it. The top 10s show each player once, with
   their best: this week's, which starts fresh every week and crowns last
-  week's winner, and the all-time one.
+  week's winner, the all-time one, and today's, for the day's challenge.
 
   The game never depends on it. A score that makes the board is saved on
   the device first and uploaded when the board can be reached, so playing
@@ -29,6 +29,7 @@ var Leaderboard = (function() {
   //    plays/{id}                  every game that made the board
   //    bests/{player}              each player's best ever
   //    weeks/{week}/bests/{player} each player's best in a week
+  //    days/{day}/bests/{player}   each player's best in a day's challenge
   //    scores/{id}                 scores from before players, by initials
   //  The board's players are at boards/{board}/players/{player}.
   var GAME = 'space-cats';
@@ -45,8 +46,14 @@ var Leaderboard = (function() {
   var WEEK_ZERO_MS = Date.UTC(1970, 0, 4, 22);
 
   //  A score played offline can still go up after its week has ended, for
-  //  three days. After that the rules turn it away.
+  //  three days, and one from a day's challenge for a day after that day.
+  //  After that the rules turn it away.
   var LATE_MS = 3 * DAY_MS;
+  var DAILY_LATE_MS = DAY_MS;
+
+  //  Days start at midnight, South African time, like weeks, and are
+  //  numbered from 1 January 1970.
+  var DAY_ZERO_MS = -2 * 60 * 60 * 1000;
 
   //  A player's name: a first name or nickname, up to 10 letters, numbers,
   //  spaces, hyphens or apostrophes, starting with a letter or number. The
@@ -68,6 +75,7 @@ var Leaderboard = (function() {
     cache: 'arcadia.' + GAME + '.leaderboard',
     offered: 'arcadia.' + GAME + '.offeredHighScore',
     weekBest: 'arcadia.' + GAME + '.weekBest',
+    dayBest: 'arcadia.' + GAME + '.dayBest',
     firstWeek: 'arcadia.' + GAME + '.firstWeek'
   };
 
@@ -139,6 +147,24 @@ var Leaderboard = (function() {
   //  The week a score was played in.
   function weekPlayed(entry) {
     return weekOf(Date.parse(entry.playedAt));
+  }
+
+  //  The day a moment falls in, and when a day starts.
+  function dayOf(time) {
+    return Math.floor((time - DAY_ZERO_MS) / DAY_MS);
+  }
+
+  function today() {
+    return dayOf(Date.now());
+  }
+
+  function dayStart(day) {
+    return DAY_ZERO_MS + day * DAY_MS;
+  }
+
+  //  Whether a waiting score is from a day's challenge, rather than a game.
+  function isDaily(entry) {
+    return typeof entry.day === 'number';
   }
 
   var board = findBoard();
@@ -270,9 +296,10 @@ var Leaderboard = (function() {
     return query;
   }
 
-  //  The players' bests, from one week or (with null) all time, as rows.
-  function fetchBests(week, size) {
-    var path = week === null ? gamePath(board) : gamePath(board) + '/weeks/' + week;
+  //  The players' bests, from one week or (with null) all time, or under
+  //  another path, as rows.
+  function fetchBests(week, size, path) {
+    path = path || (week === null ? gamePath(board) : gamePath(board) + '/weeks/' + week);
     return runQuery(path, topQuery('bests', size)).then(function(docs) {
       return docs.map(function(doc) {
         return {
@@ -313,21 +340,25 @@ var Leaderboard = (function() {
     });
   }
 
-  //  This week's top 10, last week's winner, the all-time top 10 and the
-  //  players, with the scores from before players mixed in.
+  //  This week's top 10, last week's winner, the all-time top 10, today's
+  //  challenge's top 10 and the players, with the scores from before players
+  //  mixed in.
   function fetchLists() {
     var week = thisWeek();
+    var day = today();
     return Promise.all([
       fetchBests(week, SIZE), fetchInitials(week, SIZE),
       fetchBests(week - 1, 1), fetchInitials(week - 1, 1),
       fetchBests(null, SIZE), fetchInitials(null, SIZE),
-      fetchPlayers()
+      fetchPlayers(),
+      fetchBests(null, SIZE, gamePath(board) + '/days/' + day)
     ]).then(function(found) {
       return {
         week: { week: week, rows: ranked(found[0].concat(found[1])) },
         champion: { week: week - 1, row: ranked(found[2].concat(found[3]))[0] || null },
         all: ranked(found[4].concat(found[5])),
-        players: found[6]
+        players: found[6],
+        today: { day: day, rows: found[7] }
       };
     });
   }
@@ -368,14 +399,19 @@ var Leaderboard = (function() {
   }
 
   //  Sets a player's best, which the rules only allow if it's higher than
-  //  the one already there. If it isn't, there's nothing to do.
+  //  the one already there. If it isn't, there's nothing to do. A best from
+  //  a day's challenge says which day; any other says which week.
   function setBest(path, entry, token) {
     var fields = {
       name: stringValue(entry.name),
       score: integerValue(entry.score),
-      playedAt: { timestampValue: entry.playedAt },
-      week: integerValue(weekPlayed(entry))
+      playedAt: { timestampValue: entry.playedAt }
     };
+    if (isDaily(entry)) {
+      fields.day = integerValue(entry.day);
+    } else {
+      fields.week = integerValue(weekPlayed(entry));
+    }
     return sendJson('PATCH', DOCUMENTS + '/' + path + '?key=' + API_KEY, { fields: fields }, token).catch(function(error) {
       if (error.status === 403) {
         return null;
@@ -396,6 +432,11 @@ var Leaderboard = (function() {
   //  week and best ever. Each is noted as done as it goes up, so a failure
   //  part way only leaves the rest for next time.
   function upload(entry, token) {
+    if (isDaily(entry)) {
+      //  From a day's challenge: just the player's best that day.
+      var knownToday = entry.board === board && lists.today && lists.today.day === entry.day && hasBest(lists.today.rows, entry);
+      return knownToday ? null : setBest(gamePath(entry.board) + '/days/' + entry.day + '/bests/' + entry.player, entry, token);
+    }
     if (!entry.player) {
       //  Saved by an earlier version, with initials.
       return create(gamePath(entry.board) + '/scores', entry.id, {
@@ -478,7 +519,8 @@ var Leaderboard = (function() {
   //  ended too long ago to be accepted are dropped.
   function flush() {
     var open = pending.filter(function(entry) {
-      return Date.now() < weekStart(weekPlayed(entry)) + WEEK_MS + LATE_MS;
+      return isDaily(entry) ? Date.now() < dayStart(entry.day + 1) + DAILY_LATE_MS :
+        Date.now() < weekStart(weekPlayed(entry)) + WEEK_MS + LATE_MS;
     });
     if (open.length < pending.length) {
       pending = open;
@@ -560,16 +602,30 @@ var Leaderboard = (function() {
     return refreshing;
   }
 
-  //  A top 10 to show, this week's or (with 'all') the all-time one: the
-  //  board as last fetched, with scores from this device that are still
-  //  waiting to go up counted in, and marked as waiting where they're a
-  //  player's best.
+  //  A top 10 to show: 'today' for today's challenge, 'week' for this
+  //  week's or 'all' for the all-time one. It's the board as last fetched,
+  //  with scores from this device that are still waiting to go up counted
+  //  in, and marked as waiting where they're a player's best. Today's
+  //  challenge has its own top 10, apart from the others.
   function top(view) {
     var week = thisWeek();
-    var weekly = view !== 'all';
-    var rows = weekly ? (lists.week && lists.week.week === week ? lists.week.rows : []) : lists.all || [];
+    var day = today();
+    var rows;
+    if (view === 'today') {
+      rows = lists.today && lists.today.day === day ? lists.today.rows : [];
+    } else if (view === 'all') {
+      rows = lists.all || [];
+    } else {
+      rows = lists.week && lists.week.week === week ? lists.week.rows : [];
+    }
     var waiting = pending.filter(function(entry) {
-      return entry.board === board && (!weekly || weekPlayed(entry) === week);
+      if (entry.board !== board) {
+        return false;
+      }
+      if (view === 'today') {
+        return entry.day === day;
+      }
+      return !isDaily(entry) && (view === 'all' || weekPlayed(entry) === week);
     }).map(function(entry) {
       return {
         key: entry.player ? 'p:' + entry.player : 'i:' + entry.initials,
@@ -583,11 +639,11 @@ var Leaderboard = (function() {
     return ranked(rows.concat(waiting));
   }
 
-  //  Where a player stands on this week's board, for sharing: their place
-  //  and best score, the next player up and by how much, or at the top, the
-  //  next one down. Null if they aren't in this week's top 10.
-  function standing(key) {
-    var list = top('week');
+  //  Where a player stands on this week's board (or today's), for sharing:
+  //  their place and best score, the next player up and by how much, or at
+  //  the top, the next one down. Null if they aren't in that top 10.
+  function standing(key, view) {
+    var list = top(view || 'week');
     for (var i = 0; i < list.length; i++) {
       if (list[i].key === key) {
         var gap = function(row) {
@@ -606,13 +662,14 @@ var Leaderboard = (function() {
     return crowned && crowned.week === thisWeek() - 1 ? crowned.row : null;
   }
 
-  //  Whether a score is good enough for this week's top 10. Any score good
-  //  enough for the all-time top 10 is good enough for this week's too.
-  function qualifies(score) {
+  //  Whether a score is good enough for this week's top 10 (or with
+  //  'today', today's challenge's). Any score good enough for the all-time
+  //  top 10 is good enough for this week's too.
+  function qualifies(score, view) {
     if (!board || !(score > 0)) {
       return false;
     }
-    var list = top('week');
+    var list = top(view || 'week');
     return list.length < SIZE || score > list[SIZE - 1].score;
   }
 
@@ -665,10 +722,17 @@ var Leaderboard = (function() {
     return { id: player.id, name: player.name };
   }
 
-  //  Queues a player's score for the board and starts uploading it. Returns
-  //  the player's key, to pick out their row.
-  function submit(player, score) {
-    pending.push({ id: newId(), board: board, player: player.id, name: player.name, score: score, playedAt: new Date().toISOString(), done: {} });
+  //  Queues a player's score for the board and starts uploading it. A score
+  //  from a day's challenge comes with { day, startedAt }, and counts as
+  //  played when the run began, so it stays in its day. Returns the
+  //  player's key, to pick out their row.
+  function submit(player, score, daily) {
+    var entry = { id: newId(), board: board, player: player.id, name: player.name, score: score, playedAt: new Date().toISOString(), done: {} };
+    if (daily) {
+      entry.day = daily.day;
+      entry.playedAt = daily.startedAt;
+    }
+    pending.push(entry);
     save(KEYS.pending, pending);
     var last = load(KEYS.lastPlayer, {});
     last[board] = player.id;
@@ -708,6 +772,20 @@ var Leaderboard = (function() {
   function weekBest() {
     var best = load(KEYS.weekBest, null);
     return best && best.week === thisWeek() ? best.score : 0;
+  }
+
+  //  The same for today's challenge: this device's best in it today.
+  function playedDaily(score) {
+    var best = load(KEYS.dayBest, null);
+    var day = today();
+    if (!best || best.day !== day || score > best.score) {
+      save(KEYS.dayBest, { day: day, score: score });
+    }
+  }
+
+  function dayBest() {
+    var best = load(KEYS.dayBest, null);
+    return best && best.day === today() ? best.score : 0;
   }
 
   //  Which week of the board's championship this is: week 1 is the week of
@@ -789,6 +867,8 @@ var Leaderboard = (function() {
     fetchWeekNumber: fetchWeekNumber,
     played: played,
     weekBest: weekBest,
+    playedDaily: playedDaily,
+    dayBest: dayBest,
     shouldOffer: shouldOffer,
     markOffered: markOffered,
 

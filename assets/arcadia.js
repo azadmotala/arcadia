@@ -71,11 +71,18 @@
   }
 
   //  Every way into a game takes the board along, in case this device can't
-  //  remember it.
+  //  remember it. The link to today's challenge opens on it.
   function updatePlayLinks(board) {
     var links = document.querySelectorAll('.play-link');
     for (var i = 0; i < links.length; i++) {
-      links[i].href = GAME_URL + (board ? '?board=' + encodeURIComponent(board) : '');
+      var options = [];
+      if (board) {
+        options.push('board=' + encodeURIComponent(board));
+      }
+      if (links[i].hasAttribute('data-daily')) {
+        options.push('daily=1');
+      }
+      links[i].href = GAME_URL + (options.length ? '?' + options.join('&') : '');
     }
   }
 
@@ -118,11 +125,11 @@
   //  How many of this week's top players the card shows.
   var CARD_ROWS = 5;
 
-  //  The board's live card: its name, which week of its championship this
-  //  is, last week's champion, and this week's top players, from the same
-  //  leaderboard code the game uses (games/space-cats/js/leaderboard.js),
-  //  so it shows the same scores. It shows the board as last seen at once,
-  //  then the latest.
+  //  The board's live card: its name, today's challenge, which week of its
+  //  championship this is, this week's top players and last week's
+  //  champion, from the same code the game uses (Space Cats' spacecats.js
+  //  and leaderboard.js), so it shows the same scores. It shows the board as
+  //  last seen at once, then the latest.
   function showCard(board) {
     var card = document.getElementById('boardCard');
     card.hidden = !board || !window.Leaderboard;
@@ -151,8 +158,11 @@
     var champion = Leaderboard.champion();
     var status = Leaderboard.status();
 
+    document.getElementById('cardToday').textContent = 'Today: ' + challengeName(todaysChallenge());
+
     var crowned = document.getElementById('cardChampion');
     crowned.textContent = '';
+    crowned.classList.toggle('quiet', !champion);
     if (champion) {
       crowned.appendChild(crown());
       crowned.appendChild(document.createTextNode(champion.name + ' won last week with ' + withCommas(champion.score)));

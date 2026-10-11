@@ -131,6 +131,41 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Days start at midnight, South African time, like weeks, and are
+    // numbered from 1 January 1970; this is when a day starts.
+    function dayStart(day) {
+      return day * 86400000 - 7200000;
+    }
+
+    // Each player's best in a day's challenge, which that day's top 10 is
+    // made from. It has to be from that day, and can only go up. One played
+    // offline can go up after the day has ended, but no more than a day
+    // after.
+    function isDayBest(board, game, player, day) {
+      return request.auth != null
+        && isGame(game)
+        && isBoard(board)
+        && isId(player)
+        && request.resource.data.keys().hasOnly(['name', 'score', 'playedAt', 'day'])
+        && isName(request.resource.data.name)
+        && isScore(request.resource.data.score)
+        && request.resource.data.playedAt is timestamp
+        && request.resource.data.playedAt < request.time + duration.value(1, 'd')
+        && request.resource.data.day is int
+        && string(request.resource.data.day) == day
+        && request.resource.data.playedAt.toMillis() >= dayStart(request.resource.data.day)
+        && request.resource.data.playedAt.toMillis() < dayStart(request.resource.data.day + 1)
+        && request.time.toMillis() < dayStart(request.resource.data.day + 2);
+    }
+
+    match /boards/{board}/games/{game}/days/{day}/bests/{player} {
+      allow read: if isGame(game);
+      allow create: if isDayBest(board, game, player, day);
+      allow update: if isDayBest(board, game, player, day)
+        && request.resource.data.score > resource.data.score;
+      allow delete: if false;
+    }
+
     // Scores from before players, by three capital letters. Games from
     // before then can still add them.
     match /boards/{board}/games/{game}/scores/{scoreId} {

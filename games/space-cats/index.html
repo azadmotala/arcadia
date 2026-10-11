@@ -8,9 +8,9 @@
   <!-- The ./ stops Vite's build reading these as package names. The ?v=
        matches the version in package.json: change both with each release,
        so browsers load that release's files rather than older copies. -->
-  <link href="./css/core.css?v=1.4.1" type="text/css" rel="stylesheet">
-  <link href="./css/typeography.css?v=1.4.1" type="text/css" rel="stylesheet">
-  <link href="./css/style.css?v=1.4.1" rel="stylesheet" type="text/css" />
+  <link href="./css/core.css?v=1.5.0" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.5.0" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.5.0" rel="stylesheet" type="text/css" />
   <!-- A cat in the browser tab, and on the home screen when the game is
        added to a phone. The game redraws the tab's cat as the one you play
        as. The manifest gives Android its icons and name. -->
@@ -48,9 +48,9 @@
     </div>
   </div>
 
-  <script src="js/starfield.js?v=1.4.1"></script>
-  <script src="js/spacecats.js?v=1.4.1"></script>
-  <script src="js/leaderboard.js?v=1.4.1"></script>
+  <script src="js/starfield.js?v=1.5.0"></script>
+  <script src="js/spacecats.js?v=1.5.0"></script>
+  <script src="js/leaderboard.js?v=1.5.0"></script>
   <script>
     //  Create the starfield.
     var container = document.getElementById('starfield');
@@ -93,6 +93,12 @@
 
     //  The family leaderboard, if this device has one (see js/leaderboard.js).
     game.leaderboard = Leaderboard;
+
+    //  A link with ?daily=1, like one shared from today's challenge, opens on
+    //  today's challenge.
+    if (/[?&]daily=1(?:&|$)/.test(window.location.search)) {
+      game.boardView = 'today';
+    }
     var whoForm = document.getElementById('whoPlayed');
     var playerList = document.getElementById('playerList');
     var newPlayer = document.getElementById('newPlayer');
@@ -243,16 +249,21 @@
     }
 
     //  "Friday night crew · Space Cats · 2nd this week with 3,870 (340 behind
-    //  Dad)", for the player who just played, with their best this week. Just
-    //  the score if they aren't on this week's board.
+    //  Dad)", for the player who just played, with their best this week. In
+    //  today's challenge, "... · Kaida's fish frenzy · 1st today with 2,450
+    //  (300 ahead of Mum)". Just the score if they aren't on the board.
     function resultText() {
+      var daily = game.daily;
       var parts = Leaderboard.name() ? [Leaderboard.name(), 'Space Cats'] : ['Space Cats'];
-      var standing = Leaderboard.highlightKey ? Leaderboard.standing(Leaderboard.highlightKey) : null;
+      if (daily) {
+        parts.push(challengeName(daily));
+      }
+      var standing = Leaderboard.highlightKey ? Leaderboard.standing(Leaderboard.highlightKey, daily ? 'today' : 'week') : null;
       if (!standing) {
-        parts.push(withCommas(game.score) + ' points, level ' + game.level);
+        parts.push(withCommas(game.score) + ' points, ' + (daily ? (daily.complete ? 'all three waves' : 'wave ' + game.level) : 'level ' + game.level));
         return parts.join(' · ');
       }
-      var line = ordinal(standing.rank) + ' this week with ' + withCommas(standing.score);
+      var line = ordinal(standing.rank) + (daily ? ' today with ' : ' this week with ') + withCommas(standing.score);
       if (standing.behind) {
         line += standing.behind.by ? ' (' + withCommas(standing.behind.by) + ' behind ' + standing.behind.name + ')' : ' (tied with ' + standing.behind.name + ')';
       } else if (standing.ahead) {
@@ -263,10 +274,17 @@
     }
 
     //  The game's address, with the board on it if this device has one, so a
-    //  tap in the chat goes straight to the same board.
+    //  tap in the chat goes straight to the same board, and after today's
+    //  challenge, straight to it.
     function playLink() {
-      var link = window.location.origin + window.location.pathname;
-      return Leaderboard.board() ? link + '?board=' + Leaderboard.board() : link;
+      var options = [];
+      if (Leaderboard.board()) {
+        options.push('board=' + Leaderboard.board());
+      }
+      if (game.daily) {
+        options.push('daily=1');
+      }
+      return window.location.origin + window.location.pathname + (options.length ? '?' + options.join('&') : '');
     }
 
     //  1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st.
@@ -276,9 +294,9 @@
       return n + suffix;
     }
 
-    //  When a game ends with a score good enough for this week's top 10, ask
-    //  who played, and show this week's board. The start and game-over
-    //  screens fetch the latest board.
+    //  When a game ends with a score good enough for this week's top 10 (or
+    //  after today's challenge, today's), ask who played, and show that
+    //  board. The start and game-over screens fetch the latest board.
     function leaderboardStateChanged() {
       var state = game.currentState();
       if (state instanceof LevelIntroState) {
@@ -287,10 +305,11 @@
       if (state instanceof GameOverState && state !== lastGameOver) {
         lastGameOver = state;
         var score = game.score;
-        game.boardView = 'week';
-        if (Leaderboard.qualifies(score)) {
-          askWhoPlayed(withCommas(score) + " makes this week's top 10! Who played?", function (player) {
-            Leaderboard.highlightKey = Leaderboard.submit(player, score);
+        var daily = game.daily;
+        game.boardView = daily ? 'today' : 'week';
+        if (Leaderboard.qualifies(score, game.boardView)) {
+          askWhoPlayed(withCommas(score) + (daily ? " makes today's top 10! Who played?" : " makes this week's top 10! Who played?"), function (player) {
+            Leaderboard.highlightKey = Leaderboard.submit(player, score, daily ? { day: daily.day, startedAt: daily.startedAt } : null);
           });
         }
       }
