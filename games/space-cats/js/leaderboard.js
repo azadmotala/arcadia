@@ -6,7 +6,7 @@
   ?board=..., which this device then remembers. Every Arcadia game uses the
   same board code, and each game keeps its own scores on that board.
 
-  The board starts afresh every week: it shows this week's top 10 and
+  The board starts fresh every week: it shows this week's top 10 and
   crowns last week's winner, and keeps an all-time top 10 as well.
 
   The game never depends on it. A score that makes the board is saved on

@@ -898,6 +898,17 @@ function GameOverState() {
 
 }
 
+//  Notes the score with the leaderboard, which keeps this device's best this
+//  week, remembering the best from before this game so the screen can say
+//  whether it beat it.
+GameOverState.prototype.enter = function(game) {
+  this.weekBestBefore = 0;
+  if (game.leaderboard) {
+    this.weekBestBefore = game.leaderboard.weekBest();
+    game.leaderboard.played(game.score);
+  }
+};
+
 GameOverState.prototype.update = function(game, dt) {
 
 };
@@ -919,12 +930,17 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
   ctx.fillText("Game Over!", x, y);
   ctx.font = "16px Arial";
   ctx.fillText("You scored " + game.score + " and got to level " + game.level, x, y + 40);
-  if (game.score > game.highScoreAtStart) {
+  //  On a board, the game is compared with this device's best this week, to
+  //  match the weekly top 10 underneath. Without one, with its best ever.
+  var weekBest = hasBoard ? game.leaderboard.weekBest() : 0;
+  if (hasBoard ? game.score > this.weekBestBefore : game.score > game.highScoreAtStart) {
     ctx.fillStyle = '#ffd54f';
-    ctx.fillText("New high score!", x, y + 66);
+    ctx.fillText(hasBoard ? "New best this week!" : "New high score!", x, y + 66);
     ctx.fillStyle = '#ffffff';
-  } else {
+  } else if (!hasBoard) {
     ctx.fillText("High score: " + game.highScore, x, y + 66);
+  } else if (weekBest > 0) {
+    ctx.fillText("Your best this week: " + weekBest, x, y + 66);
   }
   if (hasBoard) {
     drawLeaderboard(game, ctx, y + 96);
@@ -1003,7 +1019,7 @@ function drawLeaderboard(game, ctx, y) {
     ctx.fillText(text, x - width / 2 + CROWN_WIDTH + 6, footerY);
   } else if (weekly && board.status() === 'online') {
     ctx.fillStyle = '#888888';
-    ctx.fillText("Starts afresh every Monday", x, footerY);
+    ctx.fillText("Starts fresh every Monday", x, footerY);
   }
   ctx.textAlign = "center";
   ctx.fillStyle = '#ffffff';
