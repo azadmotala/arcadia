@@ -290,6 +290,17 @@
     update();
   }
 
+  //  The page's version, read from the ?v= on this script's link in
+  //  index.html, goes in the footer. GitHub Pages can serve the old page for
+  //  a few minutes after a release, so it shows which one a phone has.
+  function setUpVersion() {
+    var script = document.currentScript;
+    var match = script && /[?&]v=([^&]+)/.exec(script.src);
+    if (match) {
+      document.getElementById('version').textContent = match[1];
+    }
+  }
+
   //  If the 3D scene hasn't started after a few seconds (no WebGL, or
   //  three.js couldn't load), show the name on its own instead.
   window.setTimeout(function() {
@@ -304,4 +315,5 @@
   setUpDots();
   setUpHeader();
   setUpJumps();
+  setUpVersion();
 })();

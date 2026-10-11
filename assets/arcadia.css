@@ -398,6 +398,10 @@ footer p { margin: 0; }
 
 footer .brand { font-size: 20px; }
 
+/* The page's version, filled in by arcadia.js, beside the name. */
+footer .version:empty { display: none; }
+footer .version::before { content: "· "; margin-left: 6px; }
+
 /* Dots down the right-hand side: where you are, and a way to jump. */
 .dots {
   position: fixed;

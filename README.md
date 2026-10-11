@@ -107,7 +107,7 @@ arcadia/
 - **The fonts.** Headings and the sign use [Tilt Neon](https://fonts.google.com/specimen/Tilt+Neon), and the rest uses [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch), both from Google Fonts.
 - **The slides.** They snap with CSS scroll snapping. Safari on iPhone can pull the page straight back when a link jumps across snapping slides, so `assets/arcadia.js` handles links to the page's own slides itself. It switches snapping off for the jump, glides there, and switches it back on once it arrives, finishing the jump itself if the glide stalls.
 - **What a device remembers.** The board code is kept in the browser as `arcadia.board`, shared by the home page and every game. Each game keeps its own things, such as Space Cats' high score, under its own name, like `arcadia.space-cats.highScore`.
-- **Releasing a change.** Change the `?v=` on the links in `index.html` for any file you've changed, so browsers fetch the new version. GitHub Pages also keeps pages for up to 10 minutes, so a reload may be needed to see a release.
+- **Releasing a change.** Change the `?v=` on the links in `index.html` for any file you've changed, so browsers fetch the new version. The footer shows the page's version, read from the `?v=` on the `arcadia.js` link, so keep the three home page links on the same number. GitHub Pages also keeps pages for up to 10 minutes, so a reload may be needed to see a release.
 
 ## The leaderboards
 
