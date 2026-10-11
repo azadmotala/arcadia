@@ -6,8 +6,10 @@
   ?board=..., which this device then remembers. Every Arcadia game uses the
   same board code, and each game keeps its own scores on that board.
 
-  The board starts fresh every week: it shows this week's top 10 and
-  crowns last week's winner, and keeps an all-time top 10 as well.
+  Each board has its own players, by first name or nickname, shared by
+  every game and device on it. The top 10s show each player once, with
+  their best: this week's, which starts fresh every week and crowns last
+  week's winner, and the all-time one.
 
   The game never depends on it. A score that makes the board is saved on
   the device first and uploaded when the board can be reached, so playing
@@ -22,8 +24,13 @@ var Leaderboard = (function() {
   var PROJECT_ID = 'arcadia-63980';
   var DOCUMENTS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents';
 
-  //  This game's name in the database. Scores live at
-  //  boards/{board}/games/{GAME}/scores.
+  //  This game's name in the database. On each board, under
+  //  boards/{board}/games/{GAME}, it keeps:
+  //    plays/{id}                  every game that made the board
+  //    bests/{player}              each player's best ever
+  //    weeks/{week}/bests/{player} each player's best in a week
+  //    scores/{id}                 scores from before players, by initials
+  //  The board's players are at boards/{board}/players/{player}.
   var GAME = 'space-cats';
 
   var SIZE = 10;
@@ -41,15 +48,22 @@ var Leaderboard = (function() {
   //  three days. After that the rules turn it away.
   var LATE_MS = 3 * DAY_MS;
 
+  //  A player's name: a first name or nickname, up to 10 letters, numbers,
+  //  spaces, hyphens or apostrophes, starting with a letter or number. The
+  //  rules check the same.
+  var NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 '-]{0,9}$/;
+  var NAME_LENGTH = 10;
+
   //  Don't fetch the board more often than this, unless a score was added.
   var REFRESH_MS = 10000;
 
-  //  What this device remembers. The board, initials and sign-in are shared
-  //  by every Arcadia game; the rest belongs to this game.
+  //  What this device remembers. The board, its players and the sign-in are
+  //  shared by every Arcadia game; the rest belongs to this game.
   var KEYS = {
     board: 'arcadia.board',
-    initials: 'arcadia.initials',
     auth: 'arcadia.auth',
+    lastPlayer: 'arcadia.lastPlayer',
+    pendingPlayers: 'arcadia.pendingPlayers',
     pending: 'arcadia.' + GAME + '.pendingScores',
     cache: 'arcadia.' + GAME + '.leaderboard',
     offered: 'arcadia.' + GAME + '.offeredHighScore',
@@ -128,12 +142,23 @@ var Leaderboard = (function() {
 
   var board = findBoard();
 
-  //  The board as last fetched: this week's top 10, last week's winner and
-  //  the all-time top 10. The weekly ones say which week they're for, so
-  //  they can be left out once that week is over.
+  //  The board as last fetched: this week's top 10, last week's winner, the
+  //  all-time top 10 and the board's players. The weekly ones say which
+  //  week they're for, so they can be left out once that week is over.
+  //  A row in a top 10 is one player's best: { key, player, name, score,
+  //  playedAt }, where key is 'p:' and the player's id, or for scores from
+  //  before players, 'i:' and their initials (and name is the initials).
   var cache = load(KEYS.cache, null);
-  var lists = cache && cache.board === board && cache.lists ? cache.lists : { week: null, champion: null, all: null };
+  var lists = cache && cache.board === board && cache.lists && cache.lists.players ? cache.lists :
+    { week: null, champion: null, all: null, players: [] };
+
+  //  Scores and new players from this device waiting to go up. A score is
+  //  { id, board, player, name, score, playedAt, done }, where done notes
+  //  which of its writes have gone up. Scores saved by earlier versions have
+  //  initials instead of a player.
   var pending = load(KEYS.pending, []);
+  var pendingPlayers = load(KEYS.pendingPlayers, []);
+
   var status = board ? 'loading' : 'off';
   var lastRefresh = 0;
   var refreshing = null;
@@ -165,15 +190,19 @@ var Leaderboard = (function() {
     });
   }
 
-  function postJson(url, body, token) {
+  function sendJson(method, url, body, token) {
     var headers = { 'Content-Type': 'application/json' };
     if (token) {
       headers.Authorization = 'Bearer ' + token;
     }
-    return request(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+    return request(url, { method: method, headers: headers, body: JSON.stringify(body) });
   }
 
-  //  Signs in anonymously, which the rules require for adding a score. The
+  function postJson(url, body, token) {
+    return sendJson('POST', url, body, token);
+  }
+
+  //  Signs in anonymously, which the rules require for adding anything. The
   //  same anonymous user is kept between visits by saving its refresh token.
   function signIn() {
     if (idToken && Date.now() < tokenExpires) {
@@ -211,57 +240,125 @@ var Leaderboard = (function() {
     });
   }
 
-  //  The board's top scores, highest first: from one week, or from all
-  //  time if week is null.
-  function fetchTop(week, size) {
+  //  Where this game's things are on a board, under the database's documents.
+  function gamePath(code) {
+    return 'boards/' + code + '/games/' + GAME;
+  }
+
+  //  Runs a query on a collection under a path, returning each document's
+  //  id and fields.
+  function runQuery(path, query) {
+    return postJson(DOCUMENTS + '/' + path + ':runQuery?key=' + API_KEY, { structuredQuery: query }).then(function(rows) {
+      return rows.filter(function(row) { return row.document; }).map(function(row) {
+        return { id: row.document.name.split('/').pop(), fields: row.document.fields };
+      });
+    });
+  }
+
+  //  The top scores in a collection, highest first, optionally just those
+  //  from one week.
+  function topQuery(collection, size, week) {
     var query = {
-      from: [{ collectionId: 'scores' }],
+      from: [{ collectionId: collection }],
       orderBy: [{ field: { fieldPath: 'score' }, direction: 'DESCENDING' }],
       limit: size
     };
-    if (week !== null) {
+    if (week !== undefined) {
       query.where = { fieldFilter: { field: { fieldPath: 'week' }, op: 'EQUAL', value: { integerValue: String(week) } } };
     }
-    return postJson(DOCUMENTS + '/boards/' + board + '/games/' + GAME + ':runQuery?key=' + API_KEY, {
-      structuredQuery: query
-    }).then(function(rows) {
-      return rows.filter(function(row) { return row.document; }).map(function(row) {
-        var fields = row.document.fields;
+    return query;
+  }
+
+  //  The players' bests, from one week or (with null) all time, as rows.
+  function fetchBests(week, size) {
+    var path = week === null ? gamePath(board) : gamePath(board) + '/weeks/' + week;
+    return runQuery(path, topQuery('bests', size)).then(function(docs) {
+      return docs.map(function(doc) {
         return {
-          id: row.document.name.split('/').pop(),
-          initials: fields.initials.stringValue,
-          score: Number(fields.score.integerValue),
-          playedAt: fields.playedAt.timestampValue
+          key: 'p:' + doc.id,
+          player: doc.id,
+          name: doc.fields.name.stringValue,
+          score: Number(doc.fields.score.integerValue),
+          playedAt: doc.fields.playedAt.timestampValue
         };
       });
     });
   }
 
-  //  This week's top 10, last week's winner and the all-time top 10.
+  //  Scores from before players, from one week or (with null) all time, as
+  //  rows: one for each set of initials, its best.
+  function fetchInitials(week, size) {
+    return runQuery(gamePath(board), topQuery('scores', size, week === null ? undefined : week)).then(function(docs) {
+      return ranked(docs.map(function(doc) {
+        return {
+          key: 'i:' + doc.fields.initials.stringValue,
+          name: doc.fields.initials.stringValue,
+          score: Number(doc.fields.score.integerValue),
+          playedAt: doc.fields.playedAt.timestampValue
+        };
+      }));
+    });
+  }
+
+  function fetchPlayers() {
+    return runQuery('boards/' + board, {
+      from: [{ collectionId: 'players' }],
+      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'ASCENDING' }],
+      limit: 50
+    }).then(function(docs) {
+      return docs.map(function(doc) {
+        return { id: doc.id, name: doc.fields.name.stringValue };
+      });
+    });
+  }
+
+  //  This week's top 10, last week's winner, the all-time top 10 and the
+  //  players, with the scores from before players mixed in.
   function fetchLists() {
     var week = thisWeek();
-    return Promise.all([fetchTop(week, SIZE), fetchTop(week - 1, 1), fetchTop(null, SIZE)]).then(function(tops) {
+    return Promise.all([
+      fetchBests(week, SIZE), fetchInitials(week, SIZE),
+      fetchBests(week - 1, 1), fetchInitials(week - 1, 1),
+      fetchBests(null, SIZE), fetchInitials(null, SIZE),
+      fetchPlayers()
+    ]).then(function(found) {
       return {
-        week: { week: week, entries: tops[0] },
-        champion: { week: week - 1, entry: tops[1][0] || null },
-        all: tops[2]
+        week: { week: week, rows: ranked(found[0].concat(found[1])) },
+        champion: { week: week - 1, row: ranked(found[2].concat(found[3]))[0] || null },
+        all: ranked(found[4].concat(found[5])),
+        players: found[6]
       };
     });
   }
 
-  //  Adds one score to its board. Its id was made on this device, so if an
-  //  earlier try got through but its reply was lost, the server says it
-  //  already exists and that counts as done.
-  function upload(entry, token) {
-    var url = DOCUMENTS + '/boards/' + entry.board + '/games/' + GAME + '/scores?documentId=' + entry.id + '&key=' + API_KEY;
-    return postJson(url, {
-      fields: {
-        initials: { stringValue: entry.initials },
-        score: { integerValue: String(entry.score) },
-        playedAt: { timestampValue: entry.playedAt },
-        week: { integerValue: String(weekPlayed(entry)) }
+  //  One row for each player (or set of initials), their best, highest
+  //  first, the top 10. On an equal score the earlier one goes first.
+  function ranked(rows) {
+    var best = {};
+    rows.forEach(function(row) {
+      var kept = best[row.key];
+      if (!kept || row.score > kept.score || (row.score === kept.score && row.playedAt < kept.playedAt)) {
+        best[row.key] = row;
       }
-    }, token).catch(function(error) {
+    });
+    return Object.keys(best).map(function(key) { return best[key]; }).sort(function(a, b) {
+      return b.score - a.score || (a.playedAt < b.playedAt ? -1 : 1);
+    }).slice(0, SIZE);
+  }
+
+  function stringValue(value) {
+    return { stringValue: value };
+  }
+
+  function integerValue(value) {
+    return { integerValue: String(value) };
+  }
+
+  //  Adds a document with an id made on this device. If an earlier try got
+  //  through but its reply was lost, the server says it already exists, and
+  //  that counts as done.
+  function create(path, id, fields, token) {
+    return postJson(DOCUMENTS + '/' + path + '?documentId=' + id + '&key=' + API_KEY, { fields: fields }, token).catch(function(error) {
       if (error.status === 409) {
         return null;
       }
@@ -269,9 +366,115 @@ var Leaderboard = (function() {
     });
   }
 
-  //  Uploads waiting scores, oldest first, stopping at the first failure so
-  //  the rest wait for the next try. Any whose week ended too long ago to
-  //  be accepted are dropped.
+  //  Sets a player's best, which the rules only allow if it's higher than
+  //  the one already there. If it isn't, there's nothing to do.
+  function setBest(path, entry, token) {
+    var fields = {
+      name: stringValue(entry.name),
+      score: integerValue(entry.score),
+      playedAt: { timestampValue: entry.playedAt },
+      week: integerValue(weekPlayed(entry))
+    };
+    return sendJson('PATCH', DOCUMENTS + '/' + path + '?key=' + API_KEY, { fields: fields }, token).catch(function(error) {
+      if (error.status === 403) {
+        return null;
+      }
+      throw error;
+    });
+  }
+
+  //  Whether the board, as last fetched, already has a player's best at
+  //  least this high, so there's no need to try to set it.
+  function hasBest(rows, entry) {
+    return (rows || []).some(function(row) {
+      return row.player === entry.player && row.score >= entry.score;
+    });
+  }
+
+  //  Uploads one waiting score: the play itself, then the player's best this
+  //  week and best ever. Each is noted as done as it goes up, so a failure
+  //  part way only leaves the rest for next time.
+  function upload(entry, token) {
+    if (!entry.player) {
+      //  Saved by an earlier version, with initials.
+      return create(gamePath(entry.board) + '/scores', entry.id, {
+        initials: stringValue(entry.initials),
+        score: integerValue(entry.score),
+        playedAt: { timestampValue: entry.playedAt },
+        week: integerValue(weekPlayed(entry))
+      }, token);
+    }
+    var week = weekPlayed(entry);
+    var thisBoard = entry.board === board;
+    var steps = [
+      ['play', function() {
+        return create(gamePath(entry.board) + '/plays', entry.id, {
+          player: stringValue(entry.player),
+          name: stringValue(entry.name),
+          score: integerValue(entry.score),
+          playedAt: { timestampValue: entry.playedAt },
+          week: integerValue(week)
+        }, token);
+      }],
+      ['week', function() {
+        var known = thisBoard && lists.week && lists.week.week === week && hasBest(lists.week.rows, entry);
+        return known ? null : setBest(gamePath(entry.board) + '/weeks/' + week + '/bests/' + entry.player, entry, token);
+      }],
+      ['all', function() {
+        var known = thisBoard && hasBest(lists.all, entry);
+        return known ? null : setBest(gamePath(entry.board) + '/bests/' + entry.player, entry, token);
+      }]
+    ];
+    entry.done = entry.done || {};
+    var next = function(i) {
+      if (i === steps.length) {
+        return null;
+      }
+      if (entry.done[steps[i][0]]) {
+        return next(i + 1);
+      }
+      return Promise.resolve(steps[i][1]()).then(function() {
+        entry.done[steps[i][0]] = true;
+        save(KEYS.pending, pending);
+        return next(i + 1);
+      });
+    };
+    return next(0);
+  }
+
+  //  A new player added on this device while the board's players hadn't
+  //  loaded (offline, say) may already be on the board under the same name.
+  //  If so, their waiting scores go to that player instead, and they aren't
+  //  added again.
+  function joinSameNames(found) {
+    lists.players = found;
+    var last = load(KEYS.lastPlayer, {});
+    pendingPlayers = pendingPlayers.filter(function(player) {
+      var same = player.board === board && found.filter(function(other) {
+        return other.name.toLowerCase() === player.name.toLowerCase();
+      })[0];
+      if (!same) {
+        return true;
+      }
+      pending.forEach(function(entry) {
+        if (entry.player === player.id) {
+          entry.player = same.id;
+          entry.name = same.name;
+        }
+      });
+      if (last[board] === player.id) {
+        last[board] = same.id;
+      }
+      return false;
+    });
+    save(KEYS.pendingPlayers, pendingPlayers);
+    save(KEYS.pending, pending);
+    save(KEYS.lastPlayer, last);
+  }
+
+  //  Uploads new players, then waiting scores, oldest first, stopping at the
+  //  first failure so the rest wait for the next try. Scores whose week
+  //  ended too long ago to be accepted are dropped.
   function flush() {
     var open = pending.filter(function(entry) {
       return Date.now() < weekStart(weekPlayed(entry)) + WEEK_MS + LATE_MS;
@@ -280,21 +483,37 @@ var Leaderboard = (function() {
       pending = open;
       save(KEYS.pending, pending);
     }
-    if (!pending.length) {
+    if (!pending.length && !pendingPlayers.length) {
       return Promise.resolve();
     }
-    return signIn().then(function(token) {
-      var next = function() {
+    var checking = pendingPlayers.some(function(player) { return player.board === board; }) ?
+      fetchPlayers().then(joinSameNames) : Promise.resolve();
+    return checking.then(signIn).then(function(token) {
+      var nextPlayer = function() {
+        if (!pendingPlayers.length) {
+          return null;
+        }
+        var player = pendingPlayers[0];
+        return create('boards/' + player.board + '/players', player.id, {
+          name: stringValue(player.name),
+          createdAt: { timestampValue: player.createdAt }
+        }, token).then(function() {
+          pendingPlayers.shift();
+          save(KEYS.pendingPlayers, pendingPlayers);
+          return nextPlayer();
+        });
+      };
+      var nextScore = function() {
         if (!pending.length) {
           return null;
         }
         return upload(pending[0], token).then(function() {
           pending.shift();
           save(KEYS.pending, pending);
-          return next();
+          return nextScore();
         });
       };
-      return next();
+      return Promise.resolve(nextPlayer()).then(nextScore);
     });
   }
 
@@ -312,7 +531,7 @@ var Leaderboard = (function() {
       return Promise.resolve();
     }
     refreshing = flush().catch(function() {
-      //  Scores that couldn't go up wait for next time.
+      //  Anything that couldn't go up waits for next time.
     }).then(fetchLists).then(function(fetched) {
       lists = fetched;
       status = 'online';
@@ -334,61 +553,53 @@ var Leaderboard = (function() {
   }
 
   //  A top 10 to show, this week's or (with 'all') the all-time one: the
-  //  board as last fetched, plus scores from this device that are still
-  //  waiting to go up.
+  //  board as last fetched, with scores from this device that are still
+  //  waiting to go up counted in, and marked as waiting where they're a
+  //  player's best.
   function top(view) {
     var week = thisWeek();
     var weekly = view !== 'all';
-    var fetched = weekly ? (lists.week && lists.week.week === week ? lists.week.entries : []) : lists.all || [];
-    var known = {};
-    var list = fetched.slice();
-    list.forEach(function(entry) { known[entry.id] = true; });
-    pending.forEach(function(entry) {
-      if (entry.board === board && !known[entry.id] && (!weekly || weekPlayed(entry) === week)) {
-        list.push({ id: entry.id, initials: entry.initials, score: entry.score, playedAt: entry.playedAt, pending: true });
-      }
+    var rows = weekly ? (lists.week && lists.week.week === week ? lists.week.rows : []) : lists.all || [];
+    var waiting = pending.filter(function(entry) {
+      return entry.board === board && (!weekly || weekPlayed(entry) === week);
+    }).map(function(entry) {
+      return {
+        key: entry.player ? 'p:' + entry.player : 'i:' + entry.initials,
+        player: entry.player,
+        name: entry.name || entry.initials,
+        score: entry.score,
+        playedAt: entry.playedAt,
+        pending: true
+      };
     });
-    list.sort(function(a, b) {
-      return b.score - a.score || (a.playedAt < b.playedAt ? -1 : 1);
-    });
-    return list.slice(0, SIZE);
+    return ranked(rows.concat(waiting));
   }
 
-  //  Where a score stands on this week's board, for sharing: its place, the
-  //  nearest other player above it and by how much, or at the top, the
-  //  nearest one below. Null if it isn't in this week's top 10.
-  function standing(id) {
+  //  Where a player stands on this week's board, for sharing: their place
+  //  and best score, the next player up and by how much, or at the top, the
+  //  next one down. Null if they aren't in this week's top 10.
+  function standing(key) {
     var list = top('week');
-    var place = -1;
     for (var i = 0; i < list.length; i++) {
-      if (list[i].id === id) {
-        place = i;
+      if (list[i].key === key) {
+        var gap = function(row) {
+          return row ? { name: row.name, by: Math.abs(row.score - list[i].score) } : null;
+        };
+        return { rank: i + 1, score: list[i].score, behind: gap(list[i - 1]), ahead: i === 0 ? gap(list[1]) : null };
       }
     }
-    if (place < 0) {
-      return null;
-    }
-    var entry = list[place];
-    var nearest = function(step) {
-      for (var j = place + step; j >= 0 && j < list.length; j += step) {
-        if (list[j].initials !== entry.initials) {
-          return { initials: list[j].initials, by: Math.abs(list[j].score - entry.score) };
-        }
-      }
-      return null;
-    };
-    return { rank: place + 1, behind: nearest(-1), ahead: place === 0 ? nearest(1) : null };
+    return null;
   }
 
   //  Last week's winner, or null if nobody played last week (or the board
   //  hasn't been fetched since).
   function champion() {
     var crowned = lists.champion;
-    return crowned && crowned.week === thisWeek() - 1 ? crowned.entry : null;
+    return crowned && crowned.week === thisWeek() - 1 ? crowned.row : null;
   }
 
-  //  Whether a score would make this week's top 10. Any score that makes
-  //  the all-time top 10 makes this week's too.
+  //  Whether a score is good enough for this week's top 10. Any score good
+  //  enough for the all-time top 10 is good enough for this week's too.
   function qualifies(score) {
     if (!board || !(score > 0)) {
       return false;
@@ -397,15 +608,66 @@ var Leaderboard = (function() {
     return list.length < SIZE || score > list[SIZE - 1].score;
   }
 
-  //  Queues a score for the board and starts uploading it. Returns its id.
-  function submit(initials, score) {
-    var entry = { id: newId(), board: board, initials: initials, score: score, playedAt: new Date().toISOString() };
-    pending.push(entry);
+  //  The board's players, this device's last player first, then the rest
+  //  in alphabetical order.
+  function players() {
+    var seen = {};
+    var list = [];
+    lists.players.concat(pendingPlayers.filter(function(player) { return player.board === board; })).forEach(function(player) {
+      if (!seen[player.id]) {
+        seen[player.id] = true;
+        list.push({ id: player.id, name: player.name });
+      }
+    });
+    var last = lastPlayer();
+    return list.sort(function(a, b) {
+      return (b.id === last) - (a.id === last) || a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    });
+  }
+
+  //  The id of the player who last saved a score on this board from this
+  //  device, or null.
+  function lastPlayer() {
+    return load(KEYS.lastPlayer, {})[board] || null;
+  }
+
+  //  Tidies a name as it's typed: letters without their accents (Zoë is
+  //  Zoe), numbers, spaces, hyphens and apostrophes, no more than 10.
+  function cleanTyping(text) {
+    var plain = text.normalize ? text.normalize('NFD').replace(/[̀-ͯ]/g, '') : text;
+    return plain.replace(/[‘’]/g, "'").replace(/[^A-Za-z0-9 '-]/g, '').replace(/^[ '-]+/, '').slice(0, NAME_LENGTH);
+  }
+
+  //  A typed name, ready to save, or null if there's nothing usable.
+  function cleanName(text) {
+    var name = cleanTyping(text).replace(/\s+/g, ' ').trim();
+    return NAME_PATTERN.test(name) ? name : null;
+  }
+
+  //  Adds a player to the board, or if one has that name already (in any
+  //  mix of capitals), returns them.
+  function addPlayer(name) {
+    var same = players().filter(function(player) { return player.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (same) {
+      return same;
+    }
+    var player = { id: newId(), board: board, name: name, createdAt: new Date().toISOString() };
+    pendingPlayers.push(player);
+    save(KEYS.pendingPlayers, pendingPlayers);
+    return { id: player.id, name: player.name };
+  }
+
+  //  Queues a player's score for the board and starts uploading it. Returns
+  //  the player's key, to pick out their row.
+  function submit(player, score) {
+    pending.push({ id: newId(), board: board, player: player.id, name: player.name, score: score, playedAt: new Date().toISOString(), done: {} });
     save(KEYS.pending, pending);
-    save(KEYS.initials, initials);
+    var last = load(KEYS.lastPlayer, {});
+    last[board] = player.id;
+    save(KEYS.lastPlayer, last);
     markOffered();
     refresh(true);
-    return entry.id;
+    return 'p:' + player.id;
   }
 
   function newId() {
@@ -458,20 +720,26 @@ var Leaderboard = (function() {
     name: boardName,
     status: function() { return status; },
     size: SIZE,
+    nameLength: NAME_LENGTH,
     top: top,
     standing: standing,
     champion: champion,
     qualifies: qualifies,
+    players: players,
+    lastPlayer: lastPlayer,
+    cleanTyping: cleanTyping,
+    cleanName: cleanName,
+    addPlayer: addPlayer,
     submit: submit,
     refresh: refresh,
-    initials: function() { return load(KEYS.initials, ''); },
     played: played,
     weekBest: weekBest,
     shouldOffer: shouldOffer,
     markOffered: markOffered,
 
-    //  The score just added from this device, to pick out on the board.
-    highlightId: null,
+    //  The key of the player whose score was just added from this device,
+    //  to pick out their row on the board.
+    highlightKey: null,
 
     //  Called after each attempt to reach the board.
     onUpdate: null

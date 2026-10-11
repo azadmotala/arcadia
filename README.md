@@ -54,6 +54,8 @@ A board is a private code that sits at the end of a link, like `https://azadmota
 2. Send the link to the family or your friends.
 3. Everyone who opens it is on the board. Their device remembers it, and their scores in each game go on that game's weekly top 10.
 
+When a score makes the board, the game asks who played. Each board has its own players, by first name or nickname, shared by every game and device on it: tap your name, or add yourself the first time. Anyone with the link can see the names, so first names or nicknames are best. Each top 10 shows every player once, with their best.
+
 Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away. When a game ends, Share sends the result to the family chat, with a link back to the board.
 
 A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
@@ -113,9 +115,16 @@ arcadia/
 
 Scores are kept in Firestore, in Arcadia's own Firebase project, `arcadia-63980`, with the database in Johannesburg (`africa-south1`). Players sign in anonymously without noticing, and that's all it takes to post a score.
 
-Each board keeps each game's scores apart, at `boards/{code}/games/{game}/scores`. The rules in [`firestore.rules`](firestore.rules) let anyone read a board they know the code of, and let a signed-in game add a well-formed score to it. Nobody can change or delete one.
+A board's players are at `boards/{code}/players/{player}`, each with a name and when they were added. Each game keeps its own scores on the board, under `boards/{code}/games/{game}`:
 
-Each score says which week it was played in, numbered from Monday 5 January 1970, with weeks starting at midnight on Monday in South Africa (UTC+2). The rules check the week matches when the score was played, and turn away a score more than 3 days after its week has ended, so one played offline can still go up a little late. The weekly top 10 needs the index in [`firestore.indexes.json`](firestore.indexes.json). Scores from before weeks were added have no week, so they only count towards the all-time top 10.
+- `plays/{id}`: every game that made the board, with who played, their name, the score, when, and the week.
+- `bests/{player}`: each player's best ever. The all-time top 10 is the highest of these.
+- `weeks/{week}/bests/{player}`: each player's best that week. The week's top 10 is the highest of these, and last week's winner is the top one from the week before.
+- `scores/{id}`: scores from before players, by three-letter initials. They still show, one row for each set of initials.
+
+The rules in [`firestore.rules`](firestore.rules) let anyone read a board they know the code of, and let a signed-in game add well-formed players and scores to it. Nothing can be deleted, and the only change allowed is a player's best going up.
+
+Each score says which week it was played in, numbered from Monday 5 January 1970, with weeks starting at midnight on Monday in South Africa (UTC+2). The rules check the week matches when the score was played, and turn away a score more than 3 days after its week has ended, so one played offline can still go up a little late. The weekly top 10 of initials scores needs the index in [`firestore.indexes.json`](firestore.indexes.json). Scores from before weeks were added have no week, so they only count towards the all-time top 10.
 
 To publish the rules and the index after changing them, with the [Firebase CLI](https://firebase.google.com/docs/cli):
 
@@ -130,7 +139,7 @@ firebase deploy --only firestore
 3. Add that name to `isGame` in `firestore.rules` and publish the rules.
 4. Give it a cabinet on the home page: copy the Space Cats cabinet in `index.html` over one of the Coming soon cabinets.
 
-The board code, the player's initials and the anonymous sign-in are shared by every game, so a family board works across all of them.
+The board code, its players, this device's last player and the anonymous sign-in are shared by every game, so a family board works across all of them.
 
 ## Credits
 

@@ -8,9 +8,9 @@
   <!-- The ./ stops Vite's build reading these as package names. The ?v=
        matches the version in package.json: change both with each release,
        so browsers load that release's files rather than older copies. -->
-  <link href="./css/core.css?v=1.3.3" type="text/css" rel="stylesheet">
-  <link href="./css/typeography.css?v=1.3.3" type="text/css" rel="stylesheet">
-  <link href="./css/style.css?v=1.3.3" rel="stylesheet" type="text/css" />
+  <link href="./css/core.css?v=1.4.0" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.4.0" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.4.0" rel="stylesheet" type="text/css" />
   <!-- A cat in the browser tab, and on the home screen when the game is
        added to a phone. The game redraws the tab's cat as the one you play
        as. The manifest gives Android its icons and name. -->
@@ -24,14 +24,17 @@
   <div id="starfield"></div>
   <div id="gamecontainer">
     <canvas id="gameCanvas"></canvas>
-    <form id="initials" hidden>
-      <p id="initialsMessage"></p>
-      <input id="initialsInput" maxlength="3" autocomplete="off" autocapitalize="characters"
-        spellcheck="false" aria-label="Your initials" placeholder="AAA">
-      <p id="initialsHint">Three letters</p>
-      <div>
-        <button type="submit">Save</button>
-        <button type="button" id="initialsSkip">Skip</button>
+    <form id="whoPlayed" hidden>
+      <p id="whoMessage"></p>
+      <div id="playerList"></div>
+      <div id="newPlayer" hidden>
+        <input id="playerName" maxlength="10" autocomplete="off" autocapitalize="words"
+          spellcheck="false" aria-label="First name or nickname" placeholder="First name or nickname">
+        <p id="playerHint"></p>
+      </div>
+      <div class="actions">
+        <button type="submit" id="playerSave">Save</button>
+        <button type="button" id="whoSkip">Skip</button>
       </div>
     </form>
   </div>
@@ -45,9 +48,9 @@
     </div>
   </div>
 
-  <script src="js/starfield.js?v=1.3.3"></script>
-  <script src="js/spacecats.js?v=1.3.3"></script>
-  <script src="js/leaderboard.js?v=1.3.3"></script>
+  <script src="js/starfield.js?v=1.4.0"></script>
+  <script src="js/spacecats.js?v=1.4.0"></script>
+  <script src="js/leaderboard.js?v=1.4.0"></script>
   <script>
     //  Create the starfield.
     var container = document.getElementById('starfield');
@@ -90,11 +93,14 @@
 
     //  The family leaderboard, if this device has one (see js/leaderboard.js).
     game.leaderboard = Leaderboard;
-    var initialsForm = document.getElementById('initials');
-    var initialsInput = document.getElementById('initialsInput');
-    var initialsHint = document.getElementById('initialsHint');
-    var onInitialsSaved = null;
+    var whoForm = document.getElementById('whoPlayed');
+    var playerList = document.getElementById('playerList');
+    var newPlayer = document.getElementById('newPlayer');
+    var playerName = document.getElementById('playerName');
+    var playerHint = document.getElementById('playerHint');
+    var onPlayerPicked = null;
     var lastGameOver = null;
+    var NAME_HINT = "Anyone with the board's link can see it.";
 
     //  Keep the buttons and the leaderboard in step with the game.
     game.onStateChange = function () {
@@ -104,11 +110,11 @@
 
     //  The first time a device opens a board, offer its best score this week.
     Leaderboard.onUpdate = function () {
-      if (game.currentState() instanceof WelcomeState && !initialsOpen() && Leaderboard.shouldOffer()) {
+      if (game.currentState() instanceof WelcomeState && !askingWhoPlayed() && Leaderboard.shouldOffer()) {
         var best = Leaderboard.weekBest();
         Leaderboard.markOffered();
-        askForInitials('Add your best this week, ' + best + ', to the board?', function (initials) {
-          Leaderboard.highlightId = Leaderboard.submit(initials, best);
+        askWhoPlayed('Your best this week, ' + best + ', can go on the board. Who played?', function (player) {
+          Leaderboard.highlightKey = Leaderboard.submit(player, best);
         });
       }
     };
@@ -116,9 +122,9 @@
     //  Start the game.
     game.start();
 
-    //  Listen for keyboard events, unless the player is typing their initials.
+    //  Listen for keyboard events, unless the player is saying who played.
     window.addEventListener("keydown", function keydown(e) {
-      if (initialsOpen()) return;
+      if (askingWhoPlayed()) return;
       var keycode = e.which || window.event.keycode;
       //  Supress further processing of left/right/space (37/29/32)
       if (keycode == 37 || keycode == 39 || keycode == 32) {
@@ -144,27 +150,27 @@
       game.pointer = null;
     });
     window.addEventListener("keyup", function keydown(e) {
-      if (initialsOpen()) return;
+      if (askingWhoPlayed()) return;
       var keycode = e.which || window.event.keycode;
       game.keyUp(keycode);
     });
 
-    //  Touches go to the game, except taps on the buttons and the initials
-    //  box. Stopping the default keeps the browser from scrolling or zooming
-    //  mid-wave. While the initials box is open, the game ignores touches.
+    //  Touches go to the game, except taps on the buttons and the "Who
+    //  played?" box. Stopping the default keeps the browser from scrolling or
+    //  zooming mid-wave. While the box is open, the game ignores touches.
     function onButton(e) {
-      return e.target.closest && e.target.closest('button, a, input, #initials');
+      return e.target.closest && e.target.closest('button, a, input, #whoPlayed');
     }
     window.addEventListener('touchstart', function (e) {
       if (onButton(e)) return;
       e.preventDefault();
-      if (initialsOpen()) return;
+      if (askingWhoPlayed()) return;
       game.touchstart(e);
     }, { passive: false });
     window.addEventListener('touchmove', function (e) {
       if (onButton(e)) return;
       e.preventDefault();
-      if (initialsOpen()) return;
+      if (askingWhoPlayed()) return;
       game.touchmove(e);
     }, { passive: false });
     ['touchend', 'touchcancel'].forEach(function (type) {
@@ -205,10 +211,10 @@
       var pauseButton = document.getElementById('pauseButton');
       pauseButton.textContent = paused ? 'Resume' : 'Pause';
       pauseButton.hidden = !(paused || state instanceof PlayState);
-      //  Share once a game is over, after any initials are in, so it can say
-      //  where the score came on the board.
+      //  Share once a game is over, after saying who played, so it can say
+      //  where they are on the board.
       var shareButton = document.getElementById('shareButton');
-      shareButton.hidden = !(state instanceof GameOverState) || initialsOpen();
+      shareButton.hidden = !(state instanceof GameOverState) || askingWhoPlayed();
       if (shareButton.hidden) {
         shareButton.textContent = 'Share';
       }
@@ -237,19 +243,20 @@
     }
 
     //  "Friday night crew · Space Cats · 2nd this week with 3870, 340 behind
-    //  DAD", or just the score if it isn't on a board this week.
+    //  Dad", for the player who just played, with their best this week. Just
+    //  the score if they aren't on this week's board.
     function resultText() {
       var parts = Leaderboard.name() ? [Leaderboard.name(), 'Space Cats'] : ['Space Cats'];
-      var standing = Leaderboard.highlightId ? Leaderboard.standing(Leaderboard.highlightId) : null;
+      var standing = Leaderboard.highlightKey ? Leaderboard.standing(Leaderboard.highlightKey) : null;
       if (!standing) {
         parts.push(game.score + ' points, level ' + game.level);
         return parts.join(' · ');
       }
-      var line = ordinal(standing.rank) + ' this week with ' + game.score;
+      var line = ordinal(standing.rank) + ' this week with ' + standing.score;
       if (standing.behind) {
-        line += standing.behind.by ? ', ' + standing.behind.by + ' behind ' + standing.behind.initials : ', tied with ' + standing.behind.initials;
+        line += standing.behind.by ? ', ' + standing.behind.by + ' behind ' + standing.behind.name : ', tied with ' + standing.behind.name;
       } else if (standing.ahead) {
-        line += standing.ahead.by ? ', ' + standing.ahead.by + ' ahead of ' + standing.ahead.initials : ', tied with ' + standing.ahead.initials;
+        line += standing.ahead.by ? ', ' + standing.ahead.by + ' ahead of ' + standing.ahead.name : ', tied with ' + standing.ahead.name;
       }
       parts.push(line);
       return parts.join(' · ');
@@ -269,22 +276,21 @@
       return n + suffix;
     }
 
-    //  When a game ends with a score that makes this week's top 10, ask for
-    //  the player's initials, filled in with the last ones used on this
-    //  device, and show this week's board. The start and game-over screens
-    //  fetch the latest board.
+    //  When a game ends with a score good enough for this week's top 10, ask
+    //  who played, and show this week's board. The start and game-over
+    //  screens fetch the latest board.
     function leaderboardStateChanged() {
       var state = game.currentState();
       if (state instanceof LevelIntroState) {
-        Leaderboard.highlightId = null;
+        Leaderboard.highlightKey = null;
       }
       if (state instanceof GameOverState && state !== lastGameOver) {
         lastGameOver = state;
         var score = game.score;
         game.boardView = 'week';
         if (Leaderboard.qualifies(score)) {
-          askForInitials("You're in this week's top 10 with " + score + '!', function (initials) {
-            Leaderboard.highlightId = Leaderboard.submit(initials, score);
+          askWhoPlayed(score + " makes this week's top 10! Who played?", function (player) {
+            Leaderboard.highlightKey = Leaderboard.submit(player, score);
           });
         }
       }
@@ -293,51 +299,100 @@
       }
     }
 
-    function initialsOpen() {
-      return !initialsForm.hidden;
+    function askingWhoPlayed() {
+      return !whoForm.hidden;
     }
 
-    function askForInitials(message, onSave) {
-      document.getElementById('initialsMessage').textContent = message;
-      initialsInput.value = Leaderboard.initials();
-      initialsHint.textContent = 'Three letters';
-      onInitialsSaved = onSave;
-      initialsForm.hidden = false;
+    //  Asks who played: the board's players as buttons, this device's last
+    //  player first, where one tap saves the score, and New player for
+    //  someone who isn't there yet. With no players yet, it goes straight to
+    //  typing a name.
+    function askWhoPlayed(message, onPick) {
+      document.getElementById('whoMessage').textContent = message;
+      onPlayerPicked = onPick;
+      playerList.textContent = '';
+      var players = Leaderboard.players();
+      players.forEach(function (player) {
+        addPlayerButton(player.name, player.id === Leaderboard.lastPlayer() ? 'player last' : 'player', function () {
+          pick(player);
+        });
+      });
+      addPlayerButton('New player', 'player new', showNewPlayer);
+      playerName.value = '';
+      playerHint.textContent = NAME_HINT;
+      whoForm.hidden = false;
       updateButtons();
-      //  On a computer this puts the cursor in the box. Phones open their
-      //  keyboard when the box is tapped.
-      initialsInput.focus();
+      if (players.length) {
+        playerList.hidden = false;
+        newPlayer.hidden = true;
+        document.getElementById('playerSave').hidden = true;
+        //  On a computer, Enter picks the first name.
+        playerList.firstChild.focus();
+      } else {
+        showNewPlayer();
+      }
     }
 
-    function closeInitials() {
-      initialsForm.hidden = true;
-      onInitialsSaved = null;
-      initialsInput.blur();
+    function addPlayerButton(label, className, onClick) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = label;
+      button.addEventListener('click', onClick);
+      playerList.appendChild(button);
+    }
+
+    //  Somebody new: a box for their first name or nickname. On a computer
+    //  this puts the cursor in it; phones open their keyboard when it's
+    //  tapped.
+    function showNewPlayer() {
+      playerList.lastChild.hidden = true;
+      playerList.hidden = playerList.childNodes.length === 1;
+      newPlayer.hidden = false;
+      document.getElementById('playerSave').hidden = false;
+      playerName.focus();
+    }
+
+    function pick(player) {
+      var onPick = onPlayerPicked;
+      closeWhoPlayed();
+      onPick(player);
+    }
+
+    function closeWhoPlayed() {
+      whoForm.hidden = true;
+      onPlayerPicked = null;
+      playerName.blur();
       updateButtons();
     }
 
-    //  Capital letters only, three at most.
-    initialsInput.addEventListener('input', function () {
-      initialsInput.value = initialsInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    //  Letters, numbers, spaces, hyphens and apostrophes, as it's typed.
+    playerName.addEventListener('input', function () {
+      var tidied = Leaderboard.cleanTyping(playerName.value);
+      if (tidied !== playerName.value) {
+        playerName.value = tidied;
+      }
+      playerHint.textContent = NAME_HINT;
     });
 
-    initialsForm.addEventListener('submit', function (e) {
+    whoForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      var initials = initialsInput.value;
-      if (!/^[A-Z]{3}$/.test(initials)) {
-        initialsHint.textContent = 'Please use three letters';
-        initialsInput.focus();
+      if (newPlayer.hidden) {
         return;
       }
-      var onSave = onInitialsSaved;
-      closeInitials();
-      onSave(initials);
+      var name = Leaderboard.cleanName(playerName.value);
+      if (!name) {
+        playerHint.textContent = 'Please type a first name or nickname';
+        playerName.focus();
+        return;
+      }
+      pick(Leaderboard.addPlayer(name));
     });
 
-    document.getElementById('initialsSkip').addEventListener('click', closeInitials);
-    initialsForm.addEventListener('keydown', function (e) {
+    document.getElementById('whoSkip').addEventListener('click', closeWhoPlayed);
+    whoForm.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
-        closeInitials();
+        closeWhoPlayed();
       }
     });
 

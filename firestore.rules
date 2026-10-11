@@ -5,9 +5,14 @@ rules_version = '2';
 // firebase deploy --only firestore (see firebase.json).
 //
 // A family or group's board lives at boards/{code}, where the code is the
-// private ?board= part of their link. Each game keeps its own scores on the
-// board, at boards/{code}/games/{game}/scores. There are no rules for
-// listing boards, so a board can only be read by someone who knows its code.
+// private ?board= part of their link. The board's players are at
+// boards/{code}/players, and each game keeps its scores on the board under
+// boards/{code}/games/{game}. There are no rules for listing boards, so a
+// board can only be read by someone who knows its code.
+//
+// Only a game (signed in anonymously) can add anything, and only if it's
+// well-formed. Nothing can be removed, and the only change allowed is a
+// player's best going up.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -16,7 +21,27 @@ service cloud.firestore {
       return game in ['space-cats'];
     }
 
-    // Boards start afresh every week, at midnight on Monday, South African
+    function isBoard(board) {
+      return board.matches('^[A-Za-z0-9-]{6,40}$');
+    }
+
+    // Players and plays get ids made on the device: 20 letters and numbers.
+    function isId(id) {
+      return id is string && id.matches('^[A-Za-z0-9]{20}$');
+    }
+
+    // A player's name: a first name or nickname, up to 10 letters, numbers,
+    // spaces, hyphens or apostrophes, starting with a letter or number.
+    function isName(name) {
+      return name is string && name.matches("^[A-Za-z0-9][A-Za-z0-9 '-]{0,9}$");
+    }
+
+    // A sensible whole-number score.
+    function isScore(score) {
+      return score is int && score > 0 && score <= 10000000;
+    }
+
+    // Boards start fresh every week, at midnight on Monday, South African
     // time (UTC+2). Weeks are numbered from the one that started on Monday
     // 5 January 1970; this is when a week starts, in milliseconds since
     // 1970. The games work it out the same way (see leaderboard.js).
@@ -24,32 +49,101 @@ service cloud.firestore {
       return week * 604800000 + 338400000;
     }
 
-    match /boards/{board}/games/{game}/scores/{scoreId} {
-      allow read: if isGame(game);
+    // When a score was played, and the week that falls in. The time comes
+    // from the player's device, whose clock may be a little fast, so it can
+    // be up to a day ahead.
+    function isPlayedIn(data) {
+      return data.playedAt is timestamp
+        && data.playedAt < request.time + duration.value(1, 'd')
+        && data.week is int
+        && data.playedAt.toMillis() >= weekStart(data.week)
+        && data.playedAt.toMillis() < weekStart(data.week + 1);
+    }
 
-      // Only a game (signed in anonymously) can add a score, and only a
-      // well-formed one: three capital letters, a sensible whole-number
-      // score, when it was played, and the week that falls in. The time
-      // comes from the player's device, whose clock may be a little fast,
-      // so it can be up to a day ahead. A score played offline can go up
-      // after its week has ended, but no more than 3 days after.
+    // A score played offline can go up after its week has ended, but no
+    // more than 3 days after.
+    function isOnTime(week) {
+      return request.time.toMillis() < weekStart(week + 1) + 259200000;
+    }
+
+    // A player's best: their name, the score, and when it was played.
+    function isBest(board, game, player) {
+      return request.auth != null
+        && isGame(game)
+        && isBoard(board)
+        && isId(player)
+        && request.resource.data.keys().hasOnly(['name', 'score', 'playedAt', 'week'])
+        && isName(request.resource.data.name)
+        && isScore(request.resource.data.score)
+        && isPlayedIn(request.resource.data);
+    }
+
+    // A board's players.
+    match /boards/{board}/players/{player} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && isBoard(board)
+        && isId(player)
+        && request.resource.data.keys().hasOnly(['name', 'createdAt'])
+        && isName(request.resource.data.name)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt < request.time + duration.value(1, 'd');
+      allow update, delete: if false;
+    }
+
+    // Every game that made the board: who played, their name, the score,
+    // when, and the week.
+    match /boards/{board}/games/{game}/plays/{play} {
+      allow read: if isGame(game);
       allow create: if request.auth != null
         && isGame(game)
-        && board.matches('^[A-Za-z0-9-]{6,40}$')
+        && isBoard(board)
+        && request.resource.data.keys().hasOnly(['player', 'name', 'score', 'playedAt', 'week'])
+        && isId(request.resource.data.player)
+        && isName(request.resource.data.name)
+        && isScore(request.resource.data.score)
+        && isPlayedIn(request.resource.data)
+        && isOnTime(request.resource.data.week);
+      allow update, delete: if false;
+    }
+
+    // Each player's best ever, which the all-time top 10 is made from. It
+    // can only go up.
+    match /boards/{board}/games/{game}/bests/{player} {
+      allow read: if isGame(game);
+      allow create: if isBest(board, game, player);
+      allow update: if isBest(board, game, player)
+        && request.resource.data.score > resource.data.score;
+      allow delete: if false;
+    }
+
+    // Each player's best in a week, which that week's top 10 is made from.
+    // It has to be from that week, and can only go up.
+    match /boards/{board}/games/{game}/weeks/{week}/bests/{player} {
+      allow read: if isGame(game);
+      allow create: if isBest(board, game, player)
+        && string(request.resource.data.week) == week
+        && isOnTime(request.resource.data.week);
+      allow update: if isBest(board, game, player)
+        && string(request.resource.data.week) == week
+        && isOnTime(request.resource.data.week)
+        && request.resource.data.score > resource.data.score;
+      allow delete: if false;
+    }
+
+    // Scores from before players, by three capital letters. Games from
+    // before then can still add them.
+    match /boards/{board}/games/{game}/scores/{scoreId} {
+      allow read: if isGame(game);
+      allow create: if request.auth != null
+        && isGame(game)
+        && isBoard(board)
         && request.resource.data.keys().hasOnly(['initials', 'score', 'playedAt', 'week'])
         && request.resource.data.initials is string
         && request.resource.data.initials.matches('^[A-Z]{3}$')
-        && request.resource.data.score is int
-        && request.resource.data.score > 0
-        && request.resource.data.score <= 10000000
-        && request.resource.data.playedAt is timestamp
-        && request.resource.data.playedAt < request.time + duration.value(1, 'd')
-        && request.resource.data.week is int
-        && request.resource.data.playedAt.toMillis() >= weekStart(request.resource.data.week)
-        && request.resource.data.playedAt.toMillis() < weekStart(request.resource.data.week + 1)
-        && request.time.toMillis() < weekStart(request.resource.data.week + 1) + 259200000;
-
-      // Scores can't be changed or removed from a game.
+        && isScore(request.resource.data.score)
+        && isPlayedIn(request.resource.data)
+        && isOnTime(request.resource.data.week);
       allow update, delete: if false;
     }
   }

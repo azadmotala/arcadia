@@ -47,7 +47,7 @@ html {
 
 /* Fixed widths, so changing labels never moves the buttons or the game. */
 #buttons button,
-#initials button {
+#whoPlayed button {
 	width: 84px;
 	height: 40px;
 	padding: 0;
@@ -70,19 +70,20 @@ html {
 
 @media (hover: hover) {
 	#buttons button:hover,
-	#initials button:hover {
+	#whoPlayed button:hover {
 		background: rgba(255, 255, 255, 0.22);
 	}
 }
 
-/* Asks for initials, over the middle of the game, when a score makes the
-   leaderboard. */
-#initials {
+/* Asks who played, over the middle of the game, when a score is good
+   enough for the leaderboard. A little below the middle, so the score above
+   it still shows. */
+#whoPlayed {
 	position: absolute;
 	left: 50%;
-	top: 50%;
+	top: 56%;
 	transform: translate(-50%, -50%);
-	width: 240px;
+	width: 260px;
 	padding: 16px;
 	text-align: center;
 	color: #ffffff;
@@ -92,23 +93,57 @@ html {
 	border-radius: 12px;
 }
 
-#initials[hidden] {
+#whoPlayed [hidden] {
 	display: none;
 }
 
-#initials p {
-	margin: 0 0 10px;
+#whoPlayed[hidden] {
+	display: none;
+}
+
+#whoPlayed p {
+	margin: 0 0 12px;
 	line-height: 20px;
 }
 
-/* 28px also stops phones zooming in when the box is tapped. */
-#initialsInput {
-	width: 4.5em;
-	padding: 2px 0 2px 0.3em;
-	font: 28px "Courier New", Courier, monospace;
-	letter-spacing: 0.3em;
+/* The board's players, as buttons that wrap onto more rows, and scroll if
+   there are lots. The last player on this device is in gold. */
+#playerList {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+	max-height: 152px;
+	overflow-y: auto;
+	margin-bottom: 12px;
+}
+
+#whoPlayed #playerList button {
+	width: auto;
+	min-width: 64px;
+	max-width: 100%;
+	padding: 0 14px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#whoPlayed #playerList button.last {
+	color: #ffd54f;
+	border-color: #ffd54f;
+}
+
+#whoPlayed #playerList button.new {
+	color: #bbbbbb;
+	border-style: dashed;
+}
+
+/* 20px also stops phones zooming in when the box is tapped. */
+#playerName {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 4px 0;
+	font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
 	text-align: center;
-	text-transform: uppercase;
 	color: #ffd54f;
 	background: transparent;
 	border: none;
@@ -119,13 +154,17 @@ html {
 	user-select: text;
 }
 
-#initials #initialsHint {
+#playerName::placeholder {
+	color: #777777;
+}
+
+#whoPlayed #playerHint {
 	margin: 6px 0 12px;
 	font-size: 13px;
 	color: #999999;
 }
 
-#initials div {
+#whoPlayed .actions {
 	display: flex;
 	justify-content: center;
 	gap: 8px;

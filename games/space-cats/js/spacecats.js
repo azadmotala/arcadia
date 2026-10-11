@@ -970,11 +970,11 @@ function hasLeaderboard(game) {
 }
 
 //  Draws the leaderboard from y down: the board's name, a switch between
-//  this week's top 10 and the all-time one, the scores, and under them who
-//  won last week. The score just added is picked out, scores from this
-//  device that are still waiting to go up are grey, and last week's winner
-//  has a crown if they're on this week's board too. It says if the board
-//  couldn't be reached.
+//  this week's top 10 and the all-time one, each player's best, and under
+//  them who won last week. The player who just played is picked out,
+//  scores from this device that are still waiting to go up are grey, and
+//  last week's winner has a crown if they're on this week's board too. It
+//  says if the board couldn't be reached.
 function drawLeaderboard(game, ctx, y) {
   var board = game.leaderboard;
   var weekly = game.boardView !== 'all';
@@ -994,28 +994,26 @@ function drawLeaderboard(game, ctx, y) {
     ctx.fillText(board.status() === 'loading' ? "Loading…" :
       (weekly ? "No scores yet this week. Be the first!" : "No scores yet. Be the first!"), x, rowsY);
   }
-  var crowned = false;
   for (var i = 0; i < entries.length; i++) {
     var entry = entries[i];
     var rowY = rowsY + i * 17;
-    if (champion && !crowned && entry.initials === champion.initials) {
-      drawCrown(ctx, x - 74, rowY);
-      crowned = true;
+    if (champion && entry.key === champion.key) {
+      drawCrown(ctx, x - 94, rowY);
     }
-    ctx.fillStyle = entry.id === board.highlightId ? '#ffd54f' : (entry.pending ? '#999999' : '#ffffff');
+    ctx.fillStyle = entry.key === board.highlightKey ? '#ffd54f' : (entry.pending ? '#999999' : '#ffffff');
     ctx.textAlign = "right";
-    ctx.fillText((i + 1) + ".", x - 44, rowY);
+    ctx.fillText((i + 1) + ".", x - 66, rowY);
     ctx.textAlign = "left";
-    ctx.fillText(entry.initials, x - 34, rowY);
+    ctx.fillText(fitText(ctx, entry.name, BOARD_NAME_WIDTH), x - 56, rowY);
     ctx.textAlign = "right";
-    ctx.fillText(entry.score, x + 56, rowY);
+    ctx.fillText(entry.score, x + 80, rowY);
   }
   ctx.textAlign = "center";
   if (board.status() === 'offline') {
     ctx.fillStyle = '#888888';
     ctx.fillText("Leaderboard offline", x, footerY);
   } else if (champion) {
-    var text = champion.initials + " won last week with " + champion.score;
+    var text = champion.name + " won last week with " + champion.score;
     var width = CROWN_WIDTH + 6 + ctx.measureText(text).width;
     drawCrown(ctx, x - width / 2 + CROWN_WIDTH / 2, footerY);
     ctx.textAlign = "left";
@@ -1027,6 +1025,21 @@ function drawLeaderboard(game, ctx, y) {
   }
   ctx.textAlign = "center";
   ctx.fillStyle = '#ffffff';
+}
+
+//  How much room a name has on the leaderboard. Ten letters nearly always
+//  fit; a very wide name is cut short with an ellipsis.
+var BOARD_NAME_WIDTH = 84;
+
+//  Text cut short to fit a width, ending in an ellipsis if it had to be.
+function fitText(ctx, text, width) {
+  if (ctx.measureText(text).width <= width) {
+    return text;
+  }
+  while (text.length > 1 && ctx.measureText(text + "…").width > width) {
+    text = text.slice(0, -1);
+  }
+  return text + "…";
 }
 
 //  The two top 10s the leaderboard can show, side by side above it.

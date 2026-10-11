@@ -66,16 +66,18 @@ The start screen shows which version you're playing. If you think you're on an o
 
 ### Family leaderboard
 
-The game can keep a top 10 shared by a family or group of friends, on any device. It starts again every Monday at midnight (South African time), and last week's winner gets a crown. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
+The game can keep a top 10 shared by a family or group of friends, on any device, with each player on it once, with their best. It starts again every Monday at midnight (South African time), and last week's winner gets a crown. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
 
 The board's name heads it on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**. Under the name, a two-way switch, **This week** and **All time**, changes which top 10 it shows; tap or click either side. On a computer, the pointer turns into a hand over anything on the screen you can click, the cats and the switch. Below this week's scores is who won last week, and if they're on the board again this week, their crown sits beside them.
 
-<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: This week and All time, this week's top 10 of three-letter initials and scores, and a crown for last week's winner" width="360">
+<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: This week and All time, this week's top 10 of players' names and best scores, and a crown for last week's winner" width="360">
 
-- When a score makes this week's top 10, you're asked for your initials: three letters. The last ones used on that device are filled in, so on a shared computer type over them.
+- When a score is good enough for this week's top 10, the game asks who played. Tap your name: the last player on that device is first, in gold. Someone new taps **New player** and types a first name or nickname, up to 10 letters. Anyone with the board's link can see the names. The board's players are shared by every game and device on it.
+- Each top 10 shows each player once, with their best, so a score that doesn't beat your best this week still counts as a game played but doesn't change the board.
+- Scores from before players were added show with their initials, one row for each set.
 - The first time a device opens a board, it offers its best score from this week.
 - No connection? A score that makes the board waits on the device, shown in grey, and goes up when the board can be reached again. The game plays the same either way. If it can't get through within 3 days of the week ending, it's dropped.
-- When a game ends, **Share** sends how it went to the family chat, like "Friday night crew · Space Cats · 2nd this week with 3870, 340 behind DAD", with a link straight to the game on your board. Phones open their share sheet; on a computer it's copied, ready to paste. A score that isn't on this week's board is shared as just the points and the level.
+- When a game ends, **Share** sends how it went to the family chat, like "Friday night crew · Space Cats · 2nd this week with 3870, 340 behind Dad", with a link straight to the game on your board. Phones open their share sheet; on a computer it's copied, ready to paste. A score that isn't on this week's board is shared as just the points and the level.
 - Need the link again? Any device that's on the board shows it on the Family boards slide of the Arcadia home page, with a Copy button, and Share on devices that can share. [Arcadia's README](../../README.md#family-boards) has more on boards.
 
 ### It gets harder
