@@ -93,6 +93,7 @@ Then open http://localhost:8000. There's nothing to build. GitHub Pages serves t
 ```
 arcadia/
 ├── index.html              The home page: the scene, the cabinets and the family boards
+├── waiting.html            A help page, linked from nowhere, for scores that stay grey
 ├── assets/
 │   ├── arcadia.css         The neon look, the slides, the header and the cabinets
 │   ├── arcadia.js          Family boards and their live card, links between slides, the dots and the header
@@ -116,6 +117,7 @@ arcadia/
 - **The fonts.** Headings and the sign use [Tilt Neon](https://fonts.google.com/specimen/Tilt+Neon), and the rest uses [Chakra Petch](https://fonts.google.com/specimen/Chakra+Petch), both from Google Fonts.
 - **The slides.** They snap with CSS scroll snapping. Safari on iPhone can pull the page straight back when a link jumps across snapping slides, so `assets/arcadia.js` handles links to the page's own slides itself. It switches snapping off for the jump, glides there, and switches it back on once it arrives, finishing the jump itself if the glide stalls.
 - **What a device remembers.** The board code is kept in the browser as `arcadia.board`, shared by the home page and every game, along with the anonymous sign-in (`arcadia.auth`), the last player on each board (`arcadia.lastPlayer`) and new players waiting to go up (`arcadia.pendingPlayers`). Each game keeps its own things under its own name, like Space Cats' high score, `arcadia.space-cats.highScore`, its waiting scores and its best this week and today.
+- **A score that stays grey.** Open [waiting.html](https://azadmotala.github.io/arcadia/waiting.html) on that device. It lists the players and scores the device is still waiting to send, and **Send now** tries again with the game's own code, showing each request and what the board said back. Sign-in tokens are never shown.
 - **Releasing a change.** Change the `?v=` on the links in `index.html` for any file you've changed, so browsers fetch the new version. The footer shows the page's version, read from the `?v=` on the `arcadia.js` link, so keep the three home page links on the same number. GitHub Pages also keeps pages for up to 10 minutes, so a reload may be needed to see a release.
 
 ## The leaderboards

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Waiting scores · Arcadia</title>
+  <meta name="theme-color" content="#07051a">
+  <link href="./assets/favicon-32.png" rel="icon" type="image/png" sizes="32x32">
+  <link href="./assets/favicon.svg" rel="icon" type="image/svg+xml">
+  <!--
+    A help page, linked from nowhere, for when a score stays grey: it lists
+    what this device is still waiting to send to its family board, and Send
+    now tries again with the game's own code (Space Cats' leaderboard.js),
+    showing every request and what the board said back. Sign-in tokens and
+    the key are never shown.
+  -->
+  <style>
+    :root {
+      --bg: #07051a;
+      --panel: #120c33;
+      --line: #2c2466;
+      --text: #f1eeff;
+      --muted: #a69fd6;
+      --cyan: #31d6ff;
+      --gold: #ffd54f;
+      --green: #5ce27a;
+      --red: #ff6b8b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 16px 40px;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    main { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 26px; margin: 0 0 6px; }
+    h2 { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); margin: 28px 0 10px; }
+    p { margin: 0 0 12px; color: var(--muted); }
+    a { color: var(--cyan); }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+    dt { color: var(--muted); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+    ol { margin: 0; padding-left: 22px; }
+    li { margin: 0 0 10px; }
+    li:last-child { margin-bottom: 0; }
+    .score { font-weight: 700; color: var(--gold); }
+    .small { font-size: 14px; color: var(--muted); }
+    .ok { color: var(--green); }
+    .bad { color: var(--red); font-weight: 700; }
+    button {
+      margin-top: 20px;
+      padding: 12px 26px;
+      font: 700 16px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--bg);
+      background: var(--cyan);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #result { margin-top: 14px; font-weight: 700; }
+    #log li { overflow-wrap: anywhere; }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Waiting scores</h1>
+    <p>Scores saved on this device that haven't reached the family board yet. Tap <strong>Send now</strong> to try again and see what the board says back.</p>
+
+    <h2>This device</h2>
+    <div class="panel"><dl id="device"></dl></div>
+
+    <h2>Waiting new players</h2>
+    <div class="panel" id="players"></div>
+
+    <h2>Waiting scores</h2>
+    <div class="panel" id="scores"></div>
+
+    <button type="button" id="send">Send now</button>
+    <p id="result"></p>
+
+    <div id="logBox" hidden>
+      <h2>What the board said</h2>
+      <div class="panel"><ol id="log"></ol></div>
+    </div>
+
+    <p class="small" style="margin-top: 28px"><a href="./">Back to Arcadia</a></p>
+  </main>
+
+  <!-- Every request the game's code makes from this page is noted, with the
+       board's answer, before leaderboard.js loads and starts using fetch. -->
+  <script>
+    var requests = [];
+    var realFetch = window.fetch.bind(window);
+
+    //  What a request is for, in a few words, and the fields it sends, if
+    //  it saves something. Sign-in replies hold tokens, so only their status
+    //  and any error are kept.
+    function describe(url, options) {
+      var method = (options && options.method) || 'GET';
+      var body = options && options.body;
+      if (url.indexOf('accounts:signUp') !== -1) {
+        return 'Sign in as a new device';
+      }
+      if (url.indexOf('securetoken') !== -1) {
+        return 'Sign in again';
+      }
+      var path = decodeURIComponent((url.split('/documents/')[1] || '').split('?')[0]);
+      var place = path.replace(/^boards\/[^/]+\//, '').replace(/^games\/space-cats\/?/, '');
+      if (path.slice(-9) === ':runQuery') {
+        var collection = '';
+        try {
+          collection = JSON.parse(body).structuredQuery.from[0].collectionId;
+        } catch (e) {
+          //  Not a query we know.
+        }
+        return 'Read ' + (place.replace(':runQuery', '') ? place.replace(':runQuery', '') + '/' : '') + collection;
+      }
+      var fields = '';
+      try {
+        var sent = JSON.parse(body).fields;
+        fields = Object.keys(sent).map(function(key) {
+          var value = sent[key];
+          return key + ' ' + (value.stringValue !== undefined ? value.stringValue : value.integerValue !== undefined ? value.integerValue : value.timestampValue);
+        }).join(', ');
+      } catch (e) {
+        //  Nothing sent.
+      }
+      if (method === 'POST') {
+        return 'Add to ' + place + ': ' + fields;
+      }
+      if (method === 'PATCH') {
+        return 'Raise best at ' + place + ': ' + fields;
+      }
+      return method + ' ' + place;
+    }
+
+    window.fetch = function(url, options) {
+      var entry = { what: describe(String(url), options), status: '…' };
+      requests.push(entry);
+      return realFetch(url, options).then(function(response) {
+        entry.status = response.status;
+        entry.ok = response.ok;
+        if (!response.ok) {
+          response.clone().text().then(function(text) {
+            try {
+              var error = JSON.parse(text).error;
+              entry.message = error.message || error.status;
+              if (error.status && error.status !== error.message) {
+                entry.message += ' (' + error.status + ')';
+              }
+            } catch (e) {
+              entry.message = text.slice(0, 200);
+            }
+            showLog();
+          });
+        }
+        return response;
+      }, function(error) {
+        entry.status = 'no answer';
+        entry.message = String(error && error.message || error);
+        entry.ok = false;
+        throw error;
+      });
+    };
+  </script>
+  <script src="games/space-cats/js/leaderboard.js?v=1.7.0"></script>
+  <script>
+    var PENDING_KEY = 'arcadia.space-cats.pendingScores';
+    var PLAYERS_KEY = 'arcadia.pendingPlayers';
+
+    function read(key) {
+      try {
+        return JSON.parse(window.localStorage.getItem(key));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function when(iso) {
+      var time = new Date(iso);
+      return isNaN(time) ? String(iso) : time.toLocaleString();
+    }
+
+    function short(id) {
+      return id ? String(id).slice(0, 6) + '…' : '–';
+    }
+
+    function add(parent, tag, text, className) {
+      var element = document.createElement(tag);
+      if (text !== undefined) {
+        element.textContent = text;
+      }
+      if (className) {
+        element.className = className;
+      }
+      parent.appendChild(element);
+      return element;
+    }
+
+    function showDevice() {
+      var list = document.getElementById('device');
+      list.textContent = '';
+      var rows = [
+        ['Board', Leaderboard.board() || 'none'],
+        ['Last player here', (Leaderboard.players().filter(function(p) { return p.id === Leaderboard.lastPlayer(); })[0] || {}).name || short(Leaderboard.lastPlayer())],
+        ['Signed in before', read('arcadia.auth') ? 'yes' : 'no'],
+        ['Board status', Leaderboard.status()],
+        ['Time on this device', new Date().toLocaleString()]
+      ];
+      rows.forEach(function(row) {
+        add(list, 'dt', row[0]);
+        add(list, 'dd', row[1]);
+      });
+    }
+
+    function showWaiting() {
+      var players = read(PLAYERS_KEY) || [];
+      var box = document.getElementById('players');
+      box.textContent = '';
+      if (!players.length) {
+        add(box, 'p', 'None.');
+      } else {
+        var list = add(box, 'ol');
+        players.forEach(function(player) {
+          var item = add(list, 'li');
+          add(item, 'strong', player.name);
+          add(item, 'div', 'Board ' + player.board + ' · added ' + when(player.createdAt) + ' · id ' + short(player.id), 'small');
+        });
+      }
+
+      var scores = read(PENDING_KEY) || [];
+      box = document.getElementById('scores');
+      box.textContent = '';
+      if (!scores.length) {
+        add(box, 'p', 'Nothing waiting. Everything on this device has reached the board.');
+        return;
+      }
+      var list2 = add(box, 'ol');
+      scores.forEach(function(entry) {
+        var item = add(list2, 'li');
+        add(item, 'span', (entry.name || entry.initials || '?') + ' ');
+        add(item, 'span', String(entry.score), 'score');
+        var kind = typeof entry.day === 'number' ? "today's challenge, day " + entry.day : 'a game';
+        var done = entry.done ? Object.keys(entry.done).filter(function(key) { return entry.done[key]; }) : [];
+        add(item, 'div', kind + ' · played ' + when(entry.playedAt) + ' · board ' + entry.board, 'small');
+        add(item, 'div', 'player ' + (entry.player ? short(entry.player) : 'initials ' + entry.initials) + ' · id ' + short(entry.id) +
+          (done.length ? ' · already sent: ' + done.join(', ') : ''), 'small');
+      });
+    }
+
+    function showLog() {
+      document.getElementById('logBox').hidden = !requests.length;
+      var list = document.getElementById('log');
+      list.textContent = '';
+      requests.forEach(function(entry) {
+        var item = add(list, 'li');
+        add(item, 'span', entry.what + ' → ');
+        add(item, 'span', entry.ok ? String(entry.status) + ' OK' : String(entry.status), entry.ok ? 'ok' : (entry.status === '…' ? '' : 'bad'));
+        if (entry.message) {
+          add(item, 'div', entry.message, 'small');
+        }
+      });
+    }
+
+    function showAll() {
+      showDevice();
+      showWaiting();
+      showLog();
+    }
+
+    document.getElementById('send').addEventListener('click', function() {
+      var button = this;
+      var result = document.getElementById('result');
+      button.disabled = true;
+      result.textContent = 'Sending…';
+      requests.length = 0;
+      Leaderboard.refresh(true).then(function() {
+        //  Give any error messages a moment to be read.
+        setTimeout(function() {
+          var left = (read(PENDING_KEY) || []).length + (read(PLAYERS_KEY) || []).length;
+          result.textContent = left ? 'Still waiting. Anything the board turned down is in red below.' : 'Sent. Nothing left waiting.';
+          result.className = left ? 'bad' : 'ok';
+          button.disabled = false;
+          showAll();
+        }, 600);
+      });
+    });
+
+    showAll();
+  </script>
+</body>
+
+</html>
