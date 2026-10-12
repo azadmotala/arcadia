@@ -31,7 +31,7 @@ Four moon rocks stand between you and the fleet. Bombs blast holes in them from 
 
 Everything in the fleet is green. Switch on random colours and every wave turns up in a different colour from the last.
 
-Every day there's also [today's challenge](#todays-challenge): three waves, the same for everyone, played as the day's cat with that cat's twist, like Kaida's fish frenzy or Nala's rapid fire.
+Every day there's also [today's challenge](#todays-challenge): the same waves for everyone, played as the day's cat with that cat's twist, like Kaida's fish frenzy or Nala's rapid fire, until your cats run out.
 
 ## How to play
 
@@ -43,7 +43,7 @@ To keep it on your home screen, open the game and tap Share → **Add to Home Sc
 |---|---|---|
 | Pick your cat | <kbd>←</kbd> <kbd>→</kbd>, or click a cat | Tap a cat |
 | Start | <kbd>Space</kbd> | Tap anywhere else |
-| Today's challenge | Click **Today** on the board's switch, then <kbd>Space</kbd> | Tap **Today**, then tap anywhere |
+| Today's challenge | Click the gold **Today's challenge** button, or press <kbd>T</kbd> | Tap the gold **Today's challenge** button |
 | Move | <kbd>←</kbd> <kbd>→</kbd> | Drag anywhere on the screen. Your cat follows your finger and stops when you let go |
 | Fire | <kbd>Space</kbd> (hold it down to keep firing) | Keep your finger down |
 | Pause | <kbd>P</kbd> or the **Pause** button | **Pause** button, or switch to another app |
@@ -71,11 +71,11 @@ The start screen shows which version you're playing. If you think you're on an o
 
 The game can keep a top 10 shared by a family or group of friends, on any device, with each player on it once, with their best. It starts again every Monday at midnight (South African time), and last week's winner gets a crown. Make a board on the [Arcadia home page](https://azadmotala.github.io/arcadia/#boards) and send its link to everyone who should be on it. Each device remembers the board after opening the link once, and every Arcadia game uses it. Only people who know the link can see the board or add to it.
 
-The board's name heads it on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**. Under the name, a switch, **Today**, **This week** and **All time**, changes which top 10 it shows; tap or click one. **Today** is [today's challenge](#todays-challenge), and picking it sets the challenge up to play. On a computer, the pointer turns into a hand over anything on the screen you can click, the cats and the switch. Below this week's scores is who won last week, and if they're on the board again this week, their crown sits beside them.
+The board's name heads it on the start screen and when a game ends. A board made as "Friday night crew" shows **Friday night crew**; one made without a name shows **Leaderboard**. Under the name, a switch, **Today**, **This week** and **All time**, changes which top 10 it shows; tap or click one. **Today** is the top 10 for [today's challenge](#todays-challenge). On a computer, the pointer turns into a hand over anything on the screen you can click: the cats, the switch and the challenge button. Below this week's scores is who won last week, and if they're on the board again this week, their crown sits beside them.
 
-<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, and the Friday night crew board underneath: the Today, This week and All time switch, this week's top 10 of players' names and best scores, and a crown for last week's winner" width="360">
+<img src="../../docs/leaderboard.png" alt="The start screen with the five cats to pick from, Nala picked, the gold Today's challenge button, and the Friday night crew board underneath: the Today, This week and All time switch, this week's top 10 of players and best scores, and a crown for last week's winner" width="360">
 
-- When a score is good enough for this week's top 10, the game asks who played. Tap your name: the last player on that device is first, in gold. Someone new taps **New player** and types a first name or nickname, up to 10 letters. Anyone with the board's link can see the names. The board's players are shared by every game and device on it.
+- When a score is good enough for this week's top 10, the game asks who played. Tap your name: the last player on that device is first, in gold. Someone new taps **New player** and types three letters, like the initials on an arcade machine. Players added before names went to three letters keep their longer names. Anyone with the board's link can see the names. The board's players are shared by every game and device on it.
 - Each top 10 shows each player once, with their best, so a score that doesn't beat your best this week still counts as a game played but doesn't change the board.
 - Scores from before players were added show with their initials, one row for each set.
 - The first time a device opens a board, it offers its best score from this week.
@@ -85,9 +85,9 @@ The board's name heads it on the start screen and when a game ends. A board made
 
 ### Today's challenge
 
-Every day there's a new challenge: three waves, the same for everyone, played as the day's cat with that cat's twist. Pick **Today** on the board's switch (or **Today's challenge** without a board) and start.
+Every day there's a new challenge: the same waves for everyone, played as the day's cat with that cat's twist, until your cats run out. Tap the gold **Today's challenge** button on the start screen, or press <kbd>T</kbd> on a computer. It's there whichever top 10 is showing, and the twist is a surprise until the challenge starts.
 
-<img src="../../docs/daily.png" alt="The start screen on today's challenge: Kaida picked and the other cats dimmed, Today: Kaida's fish frenzy. Three waves. A fish every few seconds. Press Space to start, and the Friday night crew's Today board with Zoe, Dad, Gran, Mum and Leo, a star beside Gran, and Gran won yesterday with 4,120" width="360">
+<img src="../../docs/daily.png" alt="The start screen with the gold button for Today's challenge: Nala's rapid fire, and the Friday night crew's Today board with Zoe, Dad, Gran, Mum and Leo, a star beside Gran, and Gran won yesterday with 4,120" width="360">
 
 | Cat | Twist |
 |---|---|
@@ -99,7 +99,7 @@ Every day there's a new challenge: three waves, the same for everyone, played as
 
 - The cats take turns, one a day, so each comes round every five days. A new challenge starts at midnight, South African time.
 - The bombs, the fish (when they come, which side, what they're worth) and the holes blasted in the moon rocks follow a pattern set by the date, so everyone faces the same run that day.
-- Clear all three waves and each cat you still have is worth 500. Run out of cats and the challenge ends where you got to.
+- Clear a wave and the next one comes, harder each time, like the levels in a normal game. The challenge ends when your last cat goes home, so how far you get is up to you.
 - Play as often as you like: the **Today** board shows each player's best of the day. Today's challenge doesn't count towards This week or All time, or the device's high score. During play and at the end it shows your best today.
 - Yesterday's winner gets a star. It's under the **Today** board, with their score, and if they've played today too, their star sits beside them.
 - Sharing after the challenge says where you came today, and its link opens straight on today's challenge.

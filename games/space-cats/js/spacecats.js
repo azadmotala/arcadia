@@ -25,6 +25,7 @@
 var KEY_LEFT = 37;
 var KEY_RIGHT = 39;
 var KEY_SPACE = 32;
+var KEY_T = 84;
 
 //  The three kinds of invader: mice in flying saucers along the top row, bats
 //  in the bottom two and rat knights in between. Each is drawn from pixel
@@ -170,15 +171,36 @@ var FISH_POINTS = [100, 100, 100, 200, 200, 300, 500];
 //  It doesn't come once the fleet is down to fewer invaders than this.
 var FISH_MIN_INVADERS = 8;
 
-//  Today's challenge: everyone plays the same three waves each day, as the
-//  day's cat, with that cat's twist. The cats take turns, one a day, and a
-//  day starts at midnight, South African time, like the weekly boards. The
-//  bombs, the fish and the holes blasted in the moon rocks follow a pattern
-//  set by the date, so everyone that day faces the same run.
+//  Today's challenge: everyone plays the same waves each day, as the day's
+//  cat, with that cat's twist, until their cats run out. The cats take
+//  turns, one a day, and a day starts at midnight, South African time, like
+//  the weekly boards. The bombs, the fish and the holes blasted in the moon
+//  rocks follow a pattern set by the date, so everyone that day faces the
+//  same run.
+//
+//  Until Tuesday 13 October 2026 (day DAILY_ENDLESS_FROM), the challenge
+//  was three waves, with a bonus for each cat left at the end. A challenge
+//  started before then still plays that way.
+var DAILY_ENDLESS_FROM = 20739;
 var DAILY_WAVES = 3;
-
-//  Finishing all three waves, each cat still left is worth this much.
 var DAILY_CAT_BONUS = 500;
+
+//  Whether a day's challenge goes on until your cats run out.
+function isEndless(challenge) {
+  return challenge.day >= DAILY_ENDLESS_FROM;
+}
+
+//  "Wave 2", or on a three-wave day, "Wave 2 of 3".
+function waveName(challenge, level) {
+  return "Wave " + level + (isEndless(challenge) ? "" : " of " + DAILY_WAVES);
+}
+
+//  Where a wave's random numbers start in a day's challenge. Endless days
+//  leave room for any number of waves; three-wave days keep the seeds they
+//  were played with.
+function waveSeed(challenge, level) {
+  return isEndless(challenge) ? challenge.day * 10000 + level * 10 : challenge.day * 100 + level * 10;
+}
 
 //  Each cat's twist, in the same order as CATS.
 var DAILY_TWISTS = [
@@ -645,10 +667,9 @@ Game.prototype.showMessage = function(text, colour) {
   this.messageTime = 2;
 };
 
-//  Starts a new game from level 1: today's challenge if the start screen is
-//  showing today's board.
-Game.prototype.newGame = function() {
-  this.daily = this.boardView === 'today' ? todaysChallenge() : null;
+//  Starts a new game from level 1, or with daily, today's challenge.
+Game.prototype.newGame = function(daily) {
+  this.daily = daily ? todaysChallenge() : null;
   if (this.daily) {
     this.daily.startedAt = new Date().toISOString();
   }
@@ -841,12 +862,13 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   //  Clear the background.
   ctx.clearRect(0, 0, game.width, game.height);
   game.boardSwitch = null;
-  var daily = game.boardView === 'today' ? todaysChallenge() : null;
+  game.challengeButton = null;
+  var challenge = todaysChallenge();
 
   //  With a leaderboard, everything moves up to make room for it.
   var hasBoard = hasLeaderboard(game);
   var x = game.width / 2;
-  var y = hasBoard ? 158 : game.height / 2 - 60;
+  var y = hasBoard ? 158 : game.height / 2 - 90;
 
   ctx.font = "30px Arial";
   ctx.fillStyle = '#ffffff';
@@ -854,35 +876,30 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   ctx.textAlign = "center";
   ctx.fillText("Space Cats", x, y);
 
-  //  The cats to pick from, with a box round the one you'll play as. In
-  //  today's challenge everyone plays as the day's cat.
+  //  The cats to pick from, with a box round the one you'll play as.
   this.catsY = y + 42;
-  drawCatPicker(game, ctx, this.catsY, daily);
+  drawCatPicker(game, ctx, this.catsY);
 
   ctx.font = "16px Arial";
   ctx.fillStyle = '#ffffff';
-  if (daily) {
-    ctx.fillStyle = '#ffd54f';
-    ctx.fillText("Today: " + challengeName(daily) + ". Three waves.", x, y + 96);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(daily.twist.what + ". " + (game.touchMode ? "Tap anywhere to start." : "Press Space to start."), x, y + 120);
-  } else if (game.touchMode) {
-    ctx.fillText("Tap a cat to pick it. Tap anywhere else to start.", x, y + 96);
-    ctx.fillText("Drag anywhere to move. Hold to keep firing.", x, y + 120);
-  } else {
-    ctx.fillText("Pick your cat with ← → or a click. Press Space to start.", x, y + 96);
-  }
+  ctx.fillText(game.touchMode ? "Tap a cat to pick it. Tap anywhere else to start." :
+    "Pick your cat with ← → or a click. Press Space to start.", x, y + 90);
+
+  //  Today's challenge has its own button, whichever top 10 is showing.
+  //  Its twist is a surprise until it starts.
+  drawChallengeButton(game, ctx, y + 122, challenge);
   if (hasBoard) {
-    drawLeaderboard(game, ctx, y + 146);
+    drawLeaderboard(game, ctx, y + 150);
   } else {
-    //  Without a board, a switch between a normal game and today's
-    //  challenge, and the best for whichever it is.
-    drawBoardSwitch(game, ctx, y + 150, SOLO_VIEWS);
-    var best = daily ? game.leaderboard && game.leaderboard.dayBest() : game.highScore;
-    if (best > 0) {
-      ctx.font = "16px Arial";
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText((daily ? "Best today: " : "High score: ") + withCommas(best), x, y + 182);
+    //  Without a board, the bests for a normal game and today's challenge.
+    var dayBest = game.leaderboard ? game.leaderboard.dayBest() : 0;
+    ctx.font = "16px Arial";
+    ctx.fillStyle = '#ffffff';
+    if (game.highScore > 0) {
+      ctx.fillText("High score: " + withCommas(game.highScore), x, y + 164);
+    }
+    if (dayBest > 0) {
+      ctx.fillText("Best today: " + withCommas(dayBest), x, y + 188);
     }
   }
   if (GAME_VERSION) {
@@ -902,6 +919,49 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   }
 };
 
+//  Draws the button for today's challenge, centred on y: the day's cat and
+//  the challenge's name in a gold outline, filled in a little more when the
+//  pointer is over it. Remembers where it is, so a tap can tell it was hit.
+function drawChallengeButton(game, ctx, y, challenge) {
+  var x = game.width / 2;
+  var label = "Today's challenge: " + challengeName(challenge);
+  var sprite = game.catSprites[challenge.cat];
+  var catWidth = sprite.width * CHALLENGE_CAT_PIXEL_SIZE;
+  var catHeight = sprite.height * CHALLENGE_CAT_PIXEL_SIZE;
+  ctx.font = "15px Arial";
+  var width = CHALLENGE_BUTTON_PADDING * 2 + catWidth + 8 + ctx.measureText(label).width;
+  var left = x - width / 2;
+  var top = y - CHALLENGE_BUTTON_HEIGHT / 2;
+  var hovered = game.hovered && game.hovered.challenge;
+  ctx.fillStyle = hovered ? 'rgba(255, 213, 79, 0.25)' : 'rgba(255, 213, 79, 0.12)';
+  roundedRect(ctx, left, top, width, CHALLENGE_BUTTON_HEIGHT, CHALLENGE_BUTTON_HEIGHT / 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffd54f';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sprite, left + CHALLENGE_BUTTON_PADDING, y - catHeight / 2, catWidth, catHeight);
+  ctx.imageSmoothingEnabled = true;
+  ctx.fillStyle = '#ffd54f';
+  ctx.textAlign = "left";
+  ctx.fillText(label, left + CHALLENGE_BUTTON_PADDING + catWidth + 8, y + 1);
+  ctx.textAlign = "center";
+  game.challengeButton = { left: left, right: left + width, top: top, bottom: top + CHALLENGE_BUTTON_HEIGHT };
+}
+
+//  Whether a point is on today's challenge button. The area counted is a
+//  little bigger than the button, for fingers, but stops short of the
+//  leaderboard's name underneath.
+function onChallengeButton(game, point) {
+  var button = game.challengeButton;
+  return !!button && point.x >= button.left - 6 && point.x <= button.right + 6 &&
+    point.y >= button.top - 8 && point.y <= button.bottom + 4;
+}
+
+var CHALLENGE_BUTTON_HEIGHT = 28;
+var CHALLENGE_BUTTON_PADDING = 14;
+var CHALLENGE_CAT_PIXEL_SIZE = 2;
+
 //  Where the link back to Arcadia sits on the start screen, in game pixels.
 var HOME_LINK = { x: 190, y: 140, width: 80, height: 28 };
 
@@ -910,23 +970,19 @@ function hasHomeLink(game) {
 }
 
 //  Draws the five cats in a row, each with its name, centred on y. On a
-//  computer, a cat the pointer is over gets a faint box. In today's
-//  challenge the day's cat is picked and the others are dimmed.
-function drawCatPicker(game, ctx, y, daily) {
+//  computer, a cat the pointer is over gets a faint box.
+function drawCatPicker(game, ctx, y) {
   var width = CAT_FACES.plain[0].length * PICKER_PIXEL_SIZE;
   var height = CAT_FACES.plain.length * PICKER_PIXEL_SIZE;
-  var hovered = !daily && game.hovered && typeof game.hovered.cat === 'number' ? game.hovered.cat : -1;
-  var picked = daily ? daily.cat : game.chosenCat;
+  var hovered = game.hovered && typeof game.hovered.cat === 'number' ? game.hovered.cat : -1;
   ctx.imageSmoothingEnabled = false;
   for (var i = 0; i < CATS.length; i++) {
     var catX = pickerCatX(game, i);
-    var chosen = i === picked;
-    ctx.globalAlpha = daily && !chosen ? 0.25 : 1;
+    var chosen = i === game.chosenCat;
     ctx.drawImage(game.catSprites[i], catX - width / 2, y - height / 2 - 6, width, height);
     ctx.font = "12px Arial";
     ctx.fillStyle = chosen ? CATS[i].colour : (i === hovered ? '#dddddd' : '#888888');
     ctx.fillText(CATS[i].name, catX, y + 16);
-    ctx.globalAlpha = 1;
     if (chosen || i === hovered) {
       ctx.strokeStyle = chosen ? CATS[i].colour : 'rgba(255, 255, 255, 0.35)';
       ctx.lineWidth = 1;
@@ -938,16 +994,18 @@ function drawCatPicker(game, ctx, y, daily) {
 
 WelcomeState.prototype.keyDown = function(game, keyCode) {
   if (keyCode == KEY_SPACE) {
-    //  Space starts the game.
+    //  Space starts a game, and T today's challenge.
     game.newGame();
-  } else if ((keyCode == KEY_LEFT || keyCode == KEY_RIGHT) && game.boardView !== 'today') {
+  } else if (keyCode == KEY_T) {
+    game.newGame(true);
+  } else if (keyCode == KEY_LEFT || keyCode == KEY_RIGHT) {
     game.chooseCat(game.chosenCat + (keyCode == KEY_LEFT ? -1 : 1));
   }
 };
 
-//  A tap or click on a cat picks it, one on the Arcadia link goes home, and
-//  one on the leaderboard's switch changes which top 10 it shows. Says
-//  whether it hit any of them.
+//  A tap or click on a cat picks it, one on the Arcadia link goes home, one
+//  on the leaderboard's switch changes which top 10 it shows, and one on
+//  today's challenge starts it. Says whether it hit any of them.
 WelcomeState.prototype.tap = function(game, point) {
   if (hasHomeLink(game) && point.x >= HOME_LINK.x - 10 && point.x <= HOME_LINK.x + HOME_LINK.width &&
     Math.abs(point.y - HOME_LINK.y) <= HOME_LINK.height / 2) {
@@ -955,6 +1013,10 @@ WelcomeState.prototype.tap = function(game, point) {
     return true;
   }
   if (tapBoardSwitch(game, point)) {
+    return true;
+  }
+  if (onChallengeButton(game, point)) {
+    game.newGame(true);
     return true;
   }
   var cat = this.catAt(game, point);
@@ -965,10 +1027,9 @@ WelcomeState.prototype.tap = function(game, point) {
   return false;
 };
 
-//  Which cat on the start screen a point is on, or null. In today's
-//  challenge the cat is set, so none can be picked.
+//  Which cat on the start screen a point is on, or null.
 WelcomeState.prototype.catAt = function(game, point) {
-  if (game.boardView === 'today' || Math.abs(point.y - this.catsY) > 30) {
+  if (Math.abs(point.y - this.catsY) > 30) {
     return null;
   }
   for (var i = 0; i < CATS.length; i++) {
@@ -979,12 +1040,16 @@ WelcomeState.prototype.catAt = function(game, point) {
   return null;
 };
 
-//  What the pointer is over on the start screen that can be clicked: a cat
-//  or the leaderboard's switch (see Game.updateCursor).
+//  What the pointer is over on the start screen that can be clicked: a
+//  cat, the leaderboard's switch or today's challenge (see
+//  Game.updateCursor).
 WelcomeState.prototype.hoverTarget = function(game, point) {
   var view = boardSwitchAt(game, point);
   if (view) {
     return { view: view };
+  }
+  if (onChallengeButton(game, point)) {
+    return { challenge: true };
   }
   var cat = this.catAt(game, point);
   return cat === null ? null : { cat: cat };
@@ -1164,18 +1229,11 @@ function fitText(ctx, text, width) {
 }
 
 //  The top 10s the leaderboard can show, side by side above it: today's
-//  challenge, this week's and the all-time one. Picking Today also sets up
-//  today's challenge to play.
+//  challenge, this week's and the all-time one.
 var BOARD_VIEWS = [
   { view: 'today', label: "Today" },
   { view: 'week', label: "This week" },
   { view: 'all', label: "All time" }
-];
-
-//  Without a board, the switch picks a normal game or today's challenge.
-var SOLO_VIEWS = [
-  { view: 'week', label: "Normal game" },
-  { view: 'today', label: "Today's challenge" }
 ];
 
 var EMPTY_BOARD = {
@@ -1254,8 +1312,7 @@ function boardSwitchAt(game, point) {
   return null;
 }
 
-//  A tap on the switch shows another top 10 (and on Today, sets up today's
-//  challenge). Says whether it hit.
+//  A tap on the switch shows another top 10. Says whether it hit.
 function tapBoardSwitch(game, point) {
   var view = boardSwitchAt(game, point);
   if (view) {
@@ -1361,7 +1418,7 @@ PlayState.prototype.enter = function(game) {
   //  the day's pattern: one stream each for the bombs, the fish and the
   //  moon rocks, begun again each wave, so one doesn't upset another.
   var twist = game.daily ? game.daily.twist : {};
-  var seed = game.daily ? game.daily.day * 100 + this.level * 10 : 0;
+  var seed = game.daily ? waveSeed(game.daily, this.level) : 0;
   this.random = {
     bombs: game.daily ? seededRandom(seed + 1) : Math.random,
     fish: game.daily ? seededRandom(seed + 2) : Math.random,
@@ -1750,10 +1807,10 @@ PlayState.prototype.update = function(game, dt) {
   if (game.lives <= 0) {
     game.moveToState(new GameOverState());
   } else if (this.invaders.length === 0) {
-    //  The wave is cleared. Today's challenge ends after three, with a
-    //  bonus for each cat still left.
+    //  The wave is cleared. On a three-wave day, today's challenge ends
+    //  after the third, with a bonus for each cat still left.
     game.addScore(this.level * 50);
-    if (game.daily && this.level >= DAILY_WAVES) {
+    if (game.daily && !isEndless(game.daily) && this.level >= DAILY_WAVES) {
       game.daily.complete = true;
       game.addScore(game.lives * DAILY_CAT_BONUS);
       game.moveToState(new GameOverState());
@@ -1838,7 +1895,7 @@ PlayState.prototype.draw = function(game, dt, ctx) {
   //  family board the best is this device's best this week, to match the
   //  weekly top 10, and it goes up with the score once that passes it.
   ctx.textAlign = "left";
-  ctx.fillText(game.daily ? "Wave " + game.level + " of " + DAILY_WAVES : "Level: " + game.level, game.gameBounds.left, textYpos);
+  ctx.fillText(game.daily ? waveName(game.daily, game.level) : "Level: " + game.level, game.gameBounds.left, textYpos);
   ctx.textAlign = "center";
   ctx.fillText("Score: " + withCommas(game.score), game.width / 2, textYpos);
   ctx.textAlign = "right";
@@ -1987,16 +2044,25 @@ LevelIntroState.prototype.draw = function(game, dt, ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
+  //  In today's challenge, its name and the twist.
   if (game.daily) {
     ctx.font = "18px Arial";
     ctx.fillStyle = '#ffd54f';
-    ctx.fillText(challengeName(game.daily), game.width / 2, game.height / 2 - 40);
-    ctx.font = "36px Arial";
+    ctx.fillText(challengeName(game.daily), game.width / 2, game.height / 2 - 66);
+    ctx.font = "16px Arial";
     ctx.fillStyle = '#ffffff';
+    ctx.fillText(game.daily.twist.what + ".", game.width / 2, game.height / 2 - 40);
+    ctx.font = "36px Arial";
   }
-  ctx.fillText(game.daily ? "Wave " + this.level + " of " + DAILY_WAVES : "Level " + this.level, game.width / 2, game.height / 2);
+  ctx.fillText(game.daily ? waveName(game.daily, this.level) : "Level " + this.level, game.width / 2, game.height / 2);
   ctx.font = "24px Arial";
   ctx.fillText("Ready in " + this.countdownMessage, game.width / 2, game.height / 2 + 36);
+  //  On a touch screen, how to play, before the first wave.
+  if (game.touchMode && this.level === 1) {
+    ctx.font = "15px Arial";
+    ctx.fillStyle = '#aaaaaa';
+    ctx.fillText("Drag anywhere to move. Hold to keep firing.", game.width / 2, game.height / 2 + 72);
+  }
   return;
 };
 

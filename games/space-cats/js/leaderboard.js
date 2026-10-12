@@ -6,11 +6,11 @@
   ?board=..., which this device then remembers. Every Arcadia game uses the
   same board code, and each game keeps its own scores on that board.
 
-  Each board has its own players, by first name or nickname, shared by
-  every game and device on it. The top 10s show each player once, with
-  their best: this week's, which starts fresh every week and crowns last
-  week's winner, the all-time one, and today's, for the day's challenge,
-  which gives yesterday's winner a star.
+  Each board has its own players, by three letters like an arcade game's
+  initials, shared by every game and device on it. The top 10s show each
+  player once, with their best: this week's, which starts fresh every week
+  and crowns last week's winner, the all-time one, and today's, for the
+  day's challenge, which gives yesterday's winner a star.
 
   The game never depends on it. A score that makes the board is saved on
   the device first and uploaded when the board can be reached, so playing
@@ -56,11 +56,12 @@ var Leaderboard = (function() {
   //  numbered from 1 January 1970.
   var DAY_ZERO_MS = -2 * 60 * 60 * 1000;
 
-  //  A player's name: a first name or nickname, up to 10 letters, numbers,
-  //  spaces, hyphens or apostrophes, starting with a letter or number. The
-  //  rules check the same.
-  var NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 '-]{0,9}$/;
-  var NAME_LENGTH = 10;
+  //  A new player's name: three capital letters, like an arcade game's
+  //  initials. Players added before then keep their longer names (a first
+  //  name or nickname of up to 10 letters, numbers, spaces, hyphens or
+  //  apostrophes), which is what the rules check.
+  var NAME_PATTERN = /^[A-Z]{3}$/;
+  var NAME_LENGTH = 3;
 
   //  Don't fetch the board more often than this, unless a score was added.
   var REFRESH_MS = 10000;
@@ -705,16 +706,16 @@ var Leaderboard = (function() {
     return load(KEYS.lastPlayer, {})[board] || null;
   }
 
-  //  Tidies a name as it's typed: letters without their accents (Zoë is
-  //  Zoe), numbers, spaces, hyphens and apostrophes, no more than 10.
+  //  Tidies a name as it's typed: capital letters without their accents
+  //  (zoë is ZOE), no more than three.
   function cleanTyping(text) {
     var plain = text.normalize ? text.normalize('NFD').replace(/[̀-ͯ]/g, '') : text;
-    return plain.replace(/[‘’]/g, "'").replace(/[^A-Za-z0-9 '-]/g, '').replace(/^[ '-]+/, '').slice(0, NAME_LENGTH);
+    return plain.toUpperCase().replace(/[^A-Z]/g, '').slice(0, NAME_LENGTH);
   }
 
-  //  A typed name, ready to save, or null if there's nothing usable.
+  //  A typed name, ready to save, or null if it isn't three letters.
   function cleanName(text) {
-    var name = cleanTyping(text).replace(/\s+/g, ' ').trim();
+    var name = cleanTyping(text);
     return NAME_PATTERN.test(name) ? name : null;
   }
 

@@ -137,13 +137,15 @@ html {
 	border-style: dashed;
 }
 
-/* 20px also stops phones zooming in when the box is tapped. */
+/* Three letters, like an arcade game's initials. The big type also stops
+   phones zooming in when the box is tapped. */
 #playerName {
-	box-sizing: border-box;
-	width: 100%;
-	padding: 4px 0;
-	font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+	width: 4.5em;
+	padding: 2px 0 2px 0.3em;
+	font: 28px "Courier New", Courier, monospace;
+	letter-spacing: 0.3em;
 	text-align: center;
+	text-transform: uppercase;
 	color: #ffd54f;
 	background: transparent;
 	border: none;

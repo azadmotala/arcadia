@@ -6,11 +6,12 @@
   <title>Space Cats</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- The ./ stops Vite's build reading these as package names. The ?v=
-       matches the version in package.json: change both with each release,
-       so browsers load that release's files rather than older copies. -->
-  <link href="./css/core.css?v=1.6.0" type="text/css" rel="stylesheet">
-  <link href="./css/typeography.css?v=1.6.0" type="text/css" rel="stylesheet">
-  <link href="./css/style.css?v=1.6.0" rel="stylesheet" type="text/css" />
+       is the game's version: change it on every link with each release,
+       so browsers load that release's files rather than older copies. The
+       start screen shows it. -->
+  <link href="./css/core.css?v=1.7.0" type="text/css" rel="stylesheet">
+  <link href="./css/typeography.css?v=1.7.0" type="text/css" rel="stylesheet">
+  <link href="./css/style.css?v=1.7.0" rel="stylesheet" type="text/css" />
   <!-- A cat in the browser tab, and on the home screen when the game is
        added to a phone. The game redraws the tab's cat as the one you play
        as. The manifest gives Android its icons and name. -->
@@ -28,8 +29,8 @@
       <p id="whoMessage"></p>
       <div id="playerList"></div>
       <div id="newPlayer" hidden>
-        <input id="playerName" maxlength="10" autocomplete="off" autocapitalize="words"
-          spellcheck="false" aria-label="First name or nickname" placeholder="First name or nickname">
+        <input id="playerName" maxlength="3" autocomplete="off" autocapitalize="characters"
+          spellcheck="false" aria-label="Three letters" placeholder="AAA">
         <p id="playerHint"></p>
       </div>
       <div class="actions">
@@ -48,9 +49,9 @@
     </div>
   </div>
 
-  <script src="js/starfield.js?v=1.6.0"></script>
-  <script src="js/spacecats.js?v=1.6.0"></script>
-  <script src="js/leaderboard.js?v=1.6.0"></script>
+  <script src="js/starfield.js?v=1.7.0"></script>
+  <script src="js/spacecats.js?v=1.7.0"></script>
+  <script src="js/leaderboard.js?v=1.7.0"></script>
   <script>
     //  Create the starfield.
     var container = document.getElementById('starfield');
@@ -95,7 +96,7 @@
     game.leaderboard = Leaderboard;
 
     //  A link with ?daily=1, like one shared from today's challenge, opens on
-    //  today's challenge.
+    //  today's top 10, under the button that starts it.
     if (/[?&]daily=1(?:&|$)/.test(window.location.search)) {
       game.boardView = 'today';
     }
@@ -106,7 +107,7 @@
     var playerHint = document.getElementById('playerHint');
     var onPlayerPicked = null;
     var lastGameOver = null;
-    var NAME_HINT = "Anyone with the board's link can see it.";
+    var NAME_HINT = "Three letters";
 
     //  Keep the buttons and the leaderboard in step with the game.
     game.onStateChange = function () {
@@ -361,9 +362,8 @@
       playerList.appendChild(button);
     }
 
-    //  Somebody new: a box for their first name or nickname. On a computer
-    //  this puts the cursor in it; phones open their keyboard when it's
-    //  tapped.
+    //  Somebody new: a box for their three letters. On a computer this puts
+    //  the cursor in it; phones open their keyboard when it's tapped.
     function showNewPlayer() {
       playerList.lastChild.hidden = true;
       playerList.hidden = playerList.childNodes.length === 1;
@@ -385,7 +385,7 @@
       updateButtons();
     }
 
-    //  Letters, numbers, spaces, hyphens and apostrophes, as it's typed.
+    //  Capital letters, three at most, as they're typed.
     playerName.addEventListener('input', function () {
       var tidied = Leaderboard.cleanTyping(playerName.value);
       if (tidied !== playerName.value) {
@@ -401,7 +401,7 @@
       }
       var name = Leaderboard.cleanName(playerName.value);
       if (!name) {
-        playerHint.textContent = 'Please type a first name or nickname';
+        playerHint.textContent = 'Please use three letters';
         playerName.focus();
         return;
       }

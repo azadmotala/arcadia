@@ -54,11 +54,11 @@ A board is a private code that sits at the end of a link, like `https://azadmota
 2. Send the link to the family or your friends.
 3. Everyone who opens it is on the board. Their device remembers it, and their scores in each game go on that game's weekly top 10.
 
-When a score makes the board, the game asks who played. Each board has its own players, by first name or nickname, shared by every game and device on it: tap your name, or add yourself the first time. Anyone with the link can see the names, so first names or nicknames are best. Each top 10 shows every player once, with their best.
+When a score makes the board, the game asks who played. Each board has its own players, by three letters like the initials on an arcade machine, shared by every game and device on it: tap yours, or add yourself the first time. Anyone with the link can see them. Each top 10 shows every player once, with their best.
 
 Every board starts again at midnight on Monday, South African time. Each game shows this week's top 10 with a crown for last week's winner, and the all-time top 10 is a tap away. When a game ends, Share sends the result to the family chat, with a link back to the board.
 
-Space Cats also has a new challenge every day, the same three waves for everyone, played as the day's cat with its twist, with its own **Today** top 10 and a star for yesterday's winner ([Space Cats' README](games/space-cats/README.md#todays-challenge) has the details).
+Space Cats also has a new challenge every day, the same waves for everyone, played as the day's cat with its twist until your cats run out, with its own **Today** top 10 and a star for yesterday's winner ([Space Cats' README](games/space-cats/README.md#todays-challenge) has the details).
 
 A board's name comes from its code, so `friday-night-crew-7e3xkq` shows as **Friday night crew**: in the invite when someone opens the link, on the home page, and above the Space Cats top 10s. A board made without a name shows its code instead.
 
