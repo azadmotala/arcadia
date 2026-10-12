@@ -193,6 +193,7 @@ var Leaderboard = (function() {
   var lastRefresh = 0;
   var refreshing = null;
   var refreshAgain = false;
+  var lastError = null;
   var idToken = null;
   var tokenExpires = 0;
 
@@ -555,7 +556,10 @@ var Leaderboard = (function() {
         if (!pending.length) {
           return null;
         }
-        return upload(pending[0], token).then(function() {
+        //  A score with nothing left to send (like a challenge score the
+        //  board already has as good as) uploads nothing, but still has to
+        //  come off the list so the ones behind it can go.
+        return Promise.resolve(upload(pending[0], token)).then(function() {
           pending.shift();
           save(KEYS.pending, pending);
           return nextScore();
@@ -581,8 +585,12 @@ var Leaderboard = (function() {
     //  If the board changes part way (see useBoard), what was fetched is for
     //  the old one, so it's left out, and the new one is fetched after.
     var code = board;
-    refreshing = flush().catch(function() {
-      //  Anything that couldn't go up waits for next time.
+    refreshing = flush().then(function() {
+      lastError = null;
+    }, function(error) {
+      //  Anything that couldn't go up waits for next time. Why it stopped
+      //  is kept for waiting.html, the help page for scores that stay grey.
+      lastError = error;
     }).then(fetchLists).then(function(fetched) {
       if (board === code) {
         lists = fetched;
@@ -887,7 +895,11 @@ var Leaderboard = (function() {
     highlightKey: null,
 
     //  Called after each attempt to reach the board.
-    onUpdate: null
+    onUpdate: null,
+
+    //  Why the last try to send waiting scores stopped, or null if it
+    //  didn't.
+    lastError: function() { return lastError; }
   };
   return api;
 })();

@@ -170,7 +170,7 @@
       });
     };
   </script>
-  <script src="games/space-cats/js/leaderboard.js?v=1.7.0"></script>
+  <script src="games/space-cats/js/leaderboard.js?v=1.7.1"></script>
   <script>
     var PENDING_KEY = 'arcadia.space-cats.pendingScores';
     var PLAYERS_KEY = 'arcadia.pendingPlayers';
@@ -285,7 +285,10 @@
         //  Give any error messages a moment to be read.
         setTimeout(function() {
           var left = (read(PENDING_KEY) || []).length + (read(PLAYERS_KEY) || []).length;
-          result.textContent = left ? 'Still waiting. Anything the board turned down is in red below.' : 'Sent. Nothing left waiting.';
+          var problem = Leaderboard.lastError();
+          result.textContent = !left ? 'Sent. Nothing left waiting.' :
+            'Still waiting. Anything the board turned down is in red below.' +
+            (problem ? ' Sending stopped with: ' + (problem.message || problem) : '');
           result.className = left ? 'bad' : 'ok';
           button.disabled = false;
           showAll();
