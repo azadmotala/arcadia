@@ -31,7 +31,7 @@ Four moon rocks stand between you and the fleet. Bombs blast holes in them from 
 
 Everything in the fleet is green. Switch on random colours and every wave turns up in a different colour from the last.
 
-Every day there's also [today's challenge](#todays-challenge): the same waves for everyone, played as the day's cat with that cat's twist, like Kaida's fish frenzy or Nala's rapid fire, until your cats run out.
+Every day there's also [today's challenge](#todays-challenge): the same waves for everyone, played until your cats run out. Some days have one cat's twist, like Kaida's fish frenzy, and most days are mash-ups of two, like Kaida and Aster's.
 
 ## How to play
 
@@ -85,7 +85,7 @@ The board's name heads it on the start screen and when a game ends. A board made
 
 ### Today's challenge
 
-Every day there's a new challenge: the same waves for everyone, played as the day's cat with that cat's twist, until your cats run out. Tap the gold **Today's challenge** button on the start screen, or press <kbd>T</kbd> on a computer. It's there whichever top 10 is showing, and the twist is a surprise until the challenge starts.
+Every day there's a new challenge: the same waves for everyone, played as the day's cat with that cat's twist, until your cats run out. Most days are mash-ups, with two cats and both their twists. Tap the gold **Today's challenge** button on the start screen, or press <kbd>T</kbd> on a computer. It's there whichever top 10 is showing, and the twist is a surprise until the challenge starts.
 
 <img src="../../docs/daily.png" alt="The start screen with the gold button for Today's challenge: Nala's rapid fire, and the Friday night crew's Today board with Zoe, Dad, Gran, Mum and Leo, a star beside Gran, and Gran won yesterday with 4,120" width="360">
 
@@ -97,13 +97,14 @@ Every day there's a new challenge: the same waves for everyone, played as the da
 | Nala | Rapid fire: shoot twice as fast |
 | Aster | Starry fleet: a bigger fleet, double points |
 
-- The cats take turns, one a day, so each comes round every five days. A new challenge starts at midnight, South African time.
+- On a mash-up day, both cats play first: the day's cat, then the other one. Kaida and Aster's mash-up brings a fish every few seconds and a bigger fleet worth double points.
+- The challenges come in a shuffled order. Every 15 days, each twist comes once on its own and each pair once as a mash-up, so 10 days in 15 are mash-ups. You never get the same twist two days in a row, and a challenge never comes back within a week. A new challenge starts at midnight, South African time.
 - The bombs, the fish (when they come, which side, what they're worth) and the holes blasted in the moon rocks follow a pattern set by the date, so everyone faces the same run that day.
 - Clear a wave and the next one comes, harder each time, like the levels in a normal game. The challenge ends when your last cat goes home, so how far you get is up to you.
 - Play as often as you like: the **Today** board shows each player's best of the day. Today's challenge doesn't count towards This week or All time, or the device's high score. During play and at the end it shows your best today.
 - Yesterday's winner gets a star. It's under the **Today** board, with their score, and if they've played today too, their star sits beside them.
 - Sharing after the challenge says where you came today, and its link opens straight on today's challenge.
-- The twists are in `DAILY_TWISTS` in `js/spacecats.js`, in the same order as the cats.
+- The twists are in `DAILY_TWISTS` in `js/spacecats.js`, in the same order as the cats. `DAILY_CHALLENGES` lists all fifteen challenges, and `orderBlock` shuffles them with the date as the seed, so every device gets the same order. Until 26 October 2026 the cats took turns, one a day.
 
 ### It gets harder
 

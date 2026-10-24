@@ -172,11 +172,11 @@ var FISH_POINTS = [100, 100, 100, 200, 200, 300, 500];
 var FISH_MIN_INVADERS = 8;
 
 //  Today's challenge: everyone plays the same waves each day, as the day's
-//  cat, with that cat's twist, until their cats run out. The cats take
-//  turns, one a day, and a day starts at midnight, South African time, like
-//  the weekly boards. The bombs, the fish and the holes blasted in the moon
-//  rocks follow a pattern set by the date, so everyone that day faces the
-//  same run.
+//  cat, with that cat's twist (or on a mash-up day, two cats and both their
+//  twists), until their cats run out. A day starts at midnight, South
+//  African time, like the weekly boards. The bombs, the fish and the holes
+//  blasted in the moon rocks follow a pattern set by the date, so everyone
+//  that day faces the same run.
 //
 //  Until Tuesday 13 October 2026 (day DAILY_ENDLESS_FROM), the challenge
 //  was three waves, with a bonus for each cat left at the end. A challenge
@@ -217,16 +217,135 @@ function dayNumber(time) {
   return Math.floor((time + 2 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000));
 }
 
-//  Today's challenge: the day, its twist and its cat.
-function todaysChallenge() {
-  var day = dayNumber(Date.now());
-  var twist = DAILY_TWISTS[day % DAILY_TWISTS.length];
-  return { day: day, twist: twist, cat: twist.cat };
+//  Until Monday 26 October 2026 (day DAILY_MIXED_FROM), the cats took turns,
+//  one a day, each with its own twist. From then on most days are mash-ups,
+//  with two cats' twists at once. Every DAILY_CHALLENGES.length days bring
+//  each twist on its own once and each pair once, shuffled, with no twist
+//  on two days running and no challenge again within DAILY_MIN_GAP days.
+var DAILY_MIXED_FROM = 20752;
+var DAILY_MIN_GAP = 7;
+
+//  The challenges a day can have, each a list of the cats whose twists it
+//  brings, the day's cat first. Each cat leads three: its own twist alone,
+//  and a mash-up with each of the next two cats along.
+var DAILY_CHALLENGES = (function() {
+  var challenges = [];
+  for (var cat = 0; cat < DAILY_TWISTS.length; cat++) {
+    challenges.push([cat]);
+    challenges.push([cat, (cat + 1) % DAILY_TWISTS.length]);
+    challenges.push([cat, (cat + 2) % DAILY_TWISTS.length]);
+  }
+  return challenges;
+})();
+
+//  The order of each block of days from DAILY_MIXED_FROM, worked out the
+//  first time it's needed.
+var dailyBlocks = [];
+
+//  The cats whose twists a day's challenge has, the day's cat first.
+function dayCats(day) {
+  if (day < DAILY_MIXED_FROM) {
+    return [day % DAILY_TWISTS.length];
+  }
+  var length = DAILY_CHALLENGES.length;
+  var block = Math.floor((day - DAILY_MIXED_FROM) / length);
+  while (dailyBlocks.length <= block) {
+    dailyBlocks.push(orderBlock(DAILY_MIXED_FROM + dailyBlocks.length * length));
+  }
+  return dailyBlocks[block][(day - DAILY_MIXED_FROM) % length];
 }
 
-//  A challenge's name, like "Kaida's fish frenzy".
+//  Shuffles every challenge into the block of days that begins on start,
+//  carrying on from the days before it. When a day has nothing that fits,
+//  it goes back and tries the day before another way. The block's first day
+//  seeds the shuffle, so every device gets the same order.
+function orderBlock(start) {
+  var random = seededRandom(start);
+  var days = [];
+  for (var day = start - DAILY_MIN_GAP + 1; day < start; day++) {
+    days.push(dayCats(day));
+  }
+  var before = days.length;
+  var left = DAILY_CHALLENGES.slice();
+  function fill() {
+    if (!left.length) {
+      return true;
+    }
+    var tries = shuffled(left, random);
+    for (var i = 0; i < tries.length; i++) {
+      if (fitsAfter(tries[i], days)) {
+        days.push(tries[i]);
+        left.splice(left.indexOf(tries[i]), 1);
+        if (fill()) {
+          return true;
+        }
+        left.push(days.pop());
+      }
+    }
+    return false;
+  }
+  fill();
+  return days.slice(before);
+}
+
+//  Whether a challenge can come after these days: none of its twists the
+//  day before, and not the same challenge within DAILY_MIN_GAP days.
+function fitsAfter(cats, days) {
+  var yesterday = days[days.length - 1];
+  for (var i = 0; i < cats.length; i++) {
+    if (yesterday.indexOf(cats[i]) >= 0) {
+      return false;
+    }
+  }
+  for (var d = Math.max(0, days.length - DAILY_MIN_GAP + 1); d < days.length; d++) {
+    if (days[d].join() === cats.join()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+//  A copy of a list in a random order, from a stream of random numbers.
+function shuffled(list, random) {
+  var copy = list.slice();
+  for (var i = copy.length - 1; i > 0; i--) {
+    var j = Math.floor(random() * (i + 1));
+    var swap = copy[i];
+    copy[i] = copy[j];
+    copy[j] = swap;
+  }
+  return copy;
+}
+
+//  A day's challenge: the day, the day's cat, every cat with a twist that
+//  day (the day's cat first) and those twists, and the twist as it plays,
+//  with all their changes together.
+function challengeOn(day) {
+  var cats = dayCats(day);
+  var twists = cats.map(function(cat) { return DAILY_TWISTS[cat]; });
+  var twist = {};
+  twists.forEach(function(one) {
+    for (var key in one) {
+      if (key !== 'cat' && key !== 'name' && key !== 'what') {
+        twist[key] = one[key];
+      }
+    }
+  });
+  return { day: day, cat: cats[0], cats: cats, twists: twists, twist: twist };
+}
+
+//  Today's challenge.
+function todaysChallenge() {
+  return challengeOn(dayNumber(Date.now()));
+}
+
+//  A challenge's name, like "Kaida's fish frenzy", or on a mash-up day,
+//  "Kaida and Nala's mash-up".
 function challengeName(challenge) {
-  return CATS[challenge.cat].name + "'s " + challenge.twist.name.toLowerCase();
+  if (challenge.cats.length > 1) {
+    return CATS[challenge.cats[0]].name + " and " + CATS[challenge.cats[1]].name + "'s mash-up";
+  }
+  return CATS[challenge.cat].name + "'s " + challenge.twists[0].name.toLowerCase();
 }
 
 //  A stream of random numbers that's the same every time for the same seed
@@ -633,12 +752,11 @@ Game.prototype.chooseCat = function(cat) {
 };
 
 //  Every cat in the order they play: yours first (or in today's challenge,
-//  the day's cat), then the rest.
+//  the day's cat, and on a mash-up day the other cat next), then the rest.
 Game.prototype.catOrder = function() {
-  var first = this.daily ? this.daily.cat : this.chosenCat;
-  var order = [first];
+  var order = this.daily ? this.daily.cats.slice() : [this.chosenCat];
   for (var i = 0; i < CATS.length; i++) {
-    if (i !== first) {
+    if (order.indexOf(i) < 0) {
       order.push(i);
     }
   }
@@ -919,17 +1037,19 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
   }
 };
 
-//  Draws the button for today's challenge, centred on y: the day's cat and
-//  the challenge's name in a gold outline, filled in a little more when the
-//  pointer is over it. Remembers where it is, so a tap can tell it was hit.
+//  Draws the button for today's challenge, centred on y: the day's cat (and
+//  on a mash-up day, the other cat too) and the challenge's name in a gold
+//  outline, filled in a little more when the pointer is over it. Remembers
+//  where it is, so a tap can tell it was hit.
 function drawChallengeButton(game, ctx, y, challenge) {
   var x = game.width / 2;
   var label = "Today's challenge: " + challengeName(challenge);
-  var sprite = game.catSprites[challenge.cat];
-  var catWidth = sprite.width * CHALLENGE_CAT_PIXEL_SIZE;
-  var catHeight = sprite.height * CHALLENGE_CAT_PIXEL_SIZE;
+  var sprites = challenge.cats.map(function(cat) { return game.catSprites[cat]; });
+  var catWidth = sprites[0].width * CHALLENGE_CAT_PIXEL_SIZE;
+  var catHeight = sprites[0].height * CHALLENGE_CAT_PIXEL_SIZE;
+  var catsWidth = sprites.length * catWidth + (sprites.length - 1) * CHALLENGE_CAT_GAP;
   ctx.font = "15px Arial";
-  var width = CHALLENGE_BUTTON_PADDING * 2 + catWidth + 8 + ctx.measureText(label).width;
+  var width = CHALLENGE_BUTTON_PADDING * 2 + catsWidth + 8 + ctx.measureText(label).width;
   var left = x - width / 2;
   var top = y - CHALLENGE_BUTTON_HEIGHT / 2;
   var hovered = game.hovered && game.hovered.challenge;
@@ -940,11 +1060,13 @@ function drawChallengeButton(game, ctx, y, challenge) {
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sprite, left + CHALLENGE_BUTTON_PADDING, y - catHeight / 2, catWidth, catHeight);
+  sprites.forEach(function(sprite, i) {
+    ctx.drawImage(sprite, left + CHALLENGE_BUTTON_PADDING + i * (catWidth + CHALLENGE_CAT_GAP), y - catHeight / 2, catWidth, catHeight);
+  });
   ctx.imageSmoothingEnabled = true;
   ctx.fillStyle = '#ffd54f';
   ctx.textAlign = "left";
-  ctx.fillText(label, left + CHALLENGE_BUTTON_PADDING + catWidth + 8, y + 1);
+  ctx.fillText(label, left + CHALLENGE_BUTTON_PADDING + catsWidth + 8, y + 1);
   ctx.textAlign = "center";
   game.challengeButton = { left: left, right: left + width, top: top, bottom: top + CHALLENGE_BUTTON_HEIGHT };
 }
@@ -961,6 +1083,7 @@ function onChallengeButton(game, point) {
 var CHALLENGE_BUTTON_HEIGHT = 28;
 var CHALLENGE_BUTTON_PADDING = 14;
 var CHALLENGE_CAT_PIXEL_SIZE = 2;
+var CHALLENGE_CAT_GAP = 4;
 
 //  Where the link back to Arcadia sits on the start screen, in game pixels.
 var HOME_LINK = { x: 190, y: 140, width: 80, height: 28 };
@@ -2044,14 +2167,18 @@ LevelIntroState.prototype.draw = function(game, dt, ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
-  //  In today's challenge, its name and the twist.
+  //  In today's challenge, its name and each twist on a line of its own.
   if (game.daily) {
+    var twists = game.daily.twists;
+    var top = game.height / 2 - 40 - (twists.length - 1) * 22;
     ctx.font = "18px Arial";
     ctx.fillStyle = '#ffd54f';
-    ctx.fillText(challengeName(game.daily), game.width / 2, game.height / 2 - 66);
+    ctx.fillText(challengeName(game.daily), game.width / 2, top - 26);
     ctx.font = "16px Arial";
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(game.daily.twist.what + ".", game.width / 2, game.height / 2 - 40);
+    twists.forEach(function(twist, i) {
+      ctx.fillText(twist.what + ".", game.width / 2, top + i * 22);
+    });
     ctx.font = "36px Arial";
   }
   ctx.fillText(game.daily ? waveName(game.daily, this.level) : "Level " + this.level, game.width / 2, game.height / 2);
